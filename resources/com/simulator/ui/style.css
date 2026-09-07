@@ -1,3 +1,182 @@
-/*
-    styling the UI
-*/
+.root {
+    -fx-background-color: #020617;
+
+
+}
+.AppNamePanel{
+    -fx-background-color: #0f172a;
+
+}
+/* ListView container */
+.ClintLog {
+    -fx-background-color: #0f172a;
+    -fx-border-color: #334155;
+}
+
+/* List cells (actual items) */
+.ClintLog .list-cell {
+    -fx-background-color: transparent;
+    -fx-background-radius: 15px;
+    -fx-border-radius: 15px;
+    -fx-text-fill: #e5e7eb;
+    -fx-font-size: 14px;
+    -fx-padding: 8 12;
+}
+
+/* Hover effect */
+.ClintLog .list-cell:hover {
+    -fx-background-color: #1e293b;
+}
+
+/* Selected item */
+.ClintLog .list-cell:selected {
+    -fx-background-color: #334155;
+}
+
+
+.SimCard{
+    -fx-background-color: #0f172a;
+    -fx-border-radius: 24;
+    -fx-border-color: #334155;
+    -fx-background-radius:  24;
+
+}
+.reqlog{
+    -fx-border-color: #334155;
+    -fx-background-color: transparent;
+}
+
+.ReportGenaratePanel{
+    -fx-background-color: #0f172a;
+
+}
+.AddClintPanale{
+    -fx-background-color: #0f172a;
+    -fx-border-color: #334155;
+
+}
+.RequestInfoPanel{
+    -fx-background-color: #1e293b;
+    -fx-border-color: #334155;
+}
+
+.LogClearPanal{
+    -fx-background-color: #0f172a;
+    -fx-border-color: #334155;
+}
+.traffic-chart {
+    -fx-background-color: rgba(20, 35, 65, 0.55);
+    -fx-background-radius: 16;
+    -fx-padding: 12;
+}
+
+/* Plot background (inside grid) */
+.traffic-chart .chart-plot-background {
+    -fx-background-color: transparent;
+}
+
+/* Remove chart border */
+.traffic-chart .chart-content {
+    -fx-background-color: transparent;
+}
+
+/* GRID LINES */
+.traffic-chart .chart-horizontal-grid-lines,
+.traffic-chart .chart-vertical-grid-lines {
+    -fx-stroke: rgba(140, 170, 255, 0.15);
+    -fx-stroke-dash-array: 4 6;
+}
+
+/* AXIS */
+.traffic-chart .axis {
+    -fx-tick-label-fill: #94a3b8;
+    -fx-tick-mark-stroke: rgba(140, 170, 255, 0.2);
+}
+
+/* Hide axis line */
+.traffic-chart .axis-line {
+    -fx-stroke: transparent;
+}
+
+/* ===================== LINE ===================== */
+
+/* Main traffic line */
+.traffic-chart .default-color0.chart-series-line {
+    -fx-stroke: #3b82f6;
+    -fx-stroke-width: 2.8;
+    -fx-effect: dropshadow(
+            gaussian,
+            rgba(59, 130, 246, 0.6),
+            12,
+            0.6,
+            0,
+            0
+    );
+}
+
+/* Hide data symbols (dots) */
+.traffic-chart .chart-line-symbol {
+    -fx-background-color: transparent;
+}
+
+.traffic-chart .chart-legend {
+    -fx-background-color: transparent;
+    -fx-text-fill: #94a3b8;
+}
+
+.addbtn{
+    -fx-background-color: #94a3b8;
+}
+.text-box{
+    -fx-background-color: #334155;
+    -fx-text-fill: white;
+}
+.single-req-btn{
+    -fx-background-color: #10b981;
+    -fx-padding: 8px;
+}
+.burst-btn{
+    -fx-background-color: #d97706;
+    -fx-padding: 8px;
+}
+.genarate-btn{
+    -fx-background-color: #2563eb;
+    -fx-padding: 8px;
+}
+.clear-btn{
+    -fx-background-color: transparent;
+}
+.combo-box{
+    -fx-background-color: #334155;
+    -fx-text-fill: white;
+}
+.combo-box .list-cell{
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+}
+
+.combo-box .arrow-button{
+    -fx-background-color: transparent;
+}
+.combo-box .arrow{
+    -fx-background-color: white;
+}
+
+.combo-box-popup .list-view{
+    -fx-background-color: #334155;
+}
+.combo-box-popup .list-cell{
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-padding: 8 15 8 15;
+    -fx-background-radius: 8px;
+}
+.combo-box-popup .list-cell:hover{
+    -fx-text-fill: #3b82f6;
+    -fx-background-color: #1e293b;
+}
+.combo-box-popup .list-cell:selected{
+    -fx-text-fill:  #2563eb;
+    -fx-background-color: #334155;
+
+}
