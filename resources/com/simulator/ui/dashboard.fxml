@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.Cursor?>
 <?import javafx.scene.chart.CategoryAxis?>
 <?import javafx.scene.chart.LineChart?>
 <?import javafx.scene.chart.NumberAxis?>
@@ -86,7 +87,7 @@
                         <Pane fx:id="AddClintPanale" prefHeight="64.0" prefWidth="250.0" styleClass="AddClintPanale" stylesheets="@style.css">
                             <children>
                                 <TextField fx:id="ClientBox" layoutX="17.0" layoutY="29.0" prefHeight="26.0" prefWidth="172.0" promptText="Client Name ( i.g. Payment12)" styleClass="text-box" />
-                                <Button fx:id="AddButton" layoutX="200.0" layoutY="29.0" mnemonicParsing="false" prefHeight="26.0" prefWidth="27.0" styleClass="addbtn" text="+" textFill="WHITE">
+                                <Button fx:id="AddButton" layoutX="200.0" layoutY="29.0" mnemonicParsing="false" onAction="#onAddClient" prefHeight="26.0" prefWidth="27.0" styleClass="addbtn" text="+" textFill="WHITE">
                                     <font>
                                         <Font name="Liberation Mono Bold" size="13.0" />
                                     </font></Button>
@@ -97,7 +98,10 @@
                                 </Label>
                             </children>
                         </Pane>
-                        <ListView fx:id="ClientList" prefHeight="463.0" prefWidth="250.0" styleClass="ClintLog" />
+                        <ListView fx:id="ClientList" prefHeight="463.0" prefWidth="250.0" styleClass="ClintLog">
+                     <cursor>
+                        <Cursor fx:constant="DEFAULT" />
+                     </cursor></ListView>
                     </children>
                 </VBox>
             </left>
@@ -111,10 +115,10 @@
                                         <Font name="Noto Serif Tamil Slanted Bold" size="13.0" />
                                     </font>
                                 </Label>
-                                <Button fx:id="clearButton" layoutX="182.0" layoutY="11.0" mnemonicParsing="false" styleClass="clear-btn" text="Clear" textFill="#94a3b8" />
+                                <Button fx:id="clearButton" layoutX="182.0" layoutY="11.0" mnemonicParsing="false" onAction="#onClear" styleClass="clear-btn" text="Clear" textFill="#94a3b8" />
                             </children>
                         </Pane>
-                        <ListView fx:id="LogList" prefHeight="464.0" prefWidth="253.0" styleClass="reqlog" />
+                        <ListView fx:id="LogList" prefHeight="464.0" prefWidth="253.0" styleClass="LogList" />
                     </children>
                 </VBox>
             </right>
@@ -169,10 +173,10 @@
                             <children>
                                 <LineChart fx:id="trafficChart" alternativeRowFillVisible="false" animated="false" layoutX="20.0" layoutY="65.0" legendVisible="false" prefHeight="158.0" prefWidth="443.0" styleClass="traffic-chart">
                                     <xAxis>
-                                        <CategoryAxis side="BOTTOM" tickLabelsVisible="false" />
+                                        <CategoryAxis fx:id="trafficXAxis" side="BOTTOM" tickLabelsVisible="false" />
                                     </xAxis>
                                     <yAxis>
-                                        <NumberAxis side="LEFT" upperBound="10.0" />
+                                        <NumberAxis fx:id="trafficYAxis" forceZeroInRange="true" side="LEFT" />
                                     </yAxis>
                                 </LineChart>
                                 <Label layoutX="31.0" layoutY="42.0" text="Live Trafic Velocity" textFill="WHITE">
@@ -187,15 +191,18 @@
                                 <AnchorPane />
                                 <Pane prefHeight="237.0" prefWidth="497.0">
                                     <children>
-                                        <Pane fx:id="SimPanel" layoutX="22.0" layoutY="26.0" prefHeight="186.0" prefWidth="227.0" styleClass="SimCard" stylesheets="@style.css" />
-                                        <Button fx:id="Sendrequestbutton1" layoutX="34.0" layoutY="143.0" mnemonicParsing="false" styleClass="single-req-btn" text="Single Request" textFill="WHITE" />
+                                        <Pane fx:id="SimPanel" layoutX="22.0" layoutY="26.0" prefHeight="186.0" prefWidth="358.0" styleClass="SimCard" stylesheets="@style.css">
+                                 <children>
+                                    <ComboBox fx:id="typeChoiceBox" layoutX="226.0" layoutY="67.0" prefHeight="26.0" prefWidth="120.0" />
+                                 </children></Pane>
+                                        <Button fx:id="Sendrequestbutton" layoutX="34.0" layoutY="143.0" mnemonicParsing="false" onAction="#onSingleRequest" styleClass="single-req-btn" text="Single Request" textFill="WHITE" />
                                         <Label layoutX="34.0" layoutY="46.0" prefHeight="27.0" prefWidth="220.0" text="Manual Simulation" textFill="#94a3b8">
                                             <font>
                                                 <Font name="Noto Serif Tamil Slanted Regular" size="13.0" />
                                             </font>
                                         </Label>
                                         <ComboBox fx:id="clientChoiceBox" layoutX="34.0" layoutY="91.0" prefHeight="26.0" prefWidth="199.0" />
-                                        <Button fx:id="burstButton1" layoutX="151.0" layoutY="143.0" mnemonicParsing="false" styleClass="burst-btn" text="Burst (20X)" textFill="WHITE" />
+                                        <Button fx:id="burstButton" layoutX="151.0" layoutY="143.0" mnemonicParsing="false" onAction="#onBurst" styleClass="burst-btn" text="Burst (20X)" textFill="WHITE" />
                                     </children>
                                 </Pane>
                             </children>

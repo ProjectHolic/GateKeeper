@@ -13,18 +13,39 @@
     -fx-border-color: #334155;
 }
 
+.LogList {
+    -fx-background-color : transparent;
+    -fx-border-color : #334155;
+}
+
+.LogList .list-cell {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-text-fill: #e5e7eb;
+    -fx-font-size: 14px;
+    -fx-padding: 8 12;
+}
+
+.LogList .list-cell:empty {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+
 /* List cells (actual items) */
 .ClintLog .list-cell {
     -fx-background-color: transparent;
-    -fx-background-radius: 15px;
-    -fx-border-radius: 15px;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
     -fx-text-fill: #e5e7eb;
     -fx-font-size: 14px;
     -fx-padding: 8 12;
 }
 
 /* Hover effect */
-.ClintLog .list-cell:hover {
+.ClintLog .list-cell:filled:hover {
     -fx-background-color: #1e293b;
 }
 
@@ -41,10 +62,7 @@
     -fx-background-radius:  24;
 
 }
-.reqlog{
-    -fx-border-color: #334155;
-    -fx-background-color: transparent;
-}
+
 
 .ReportGenaratePanel{
     -fx-background-color: #0f172a;
@@ -179,4 +197,72 @@
     -fx-text-fill:  #2563eb;
     -fx-background-color: #334155;
 
+}
+
+/* ===== Scrollbar for both ListViews ===== */
+
+.LogList .scroll-bar:vertical,
+.ClintList .scroll-bar:vertical {
+    -fx-pref-width: 7px;
+    -fx-background-color: transparent;
+}
+
+.LogList .scroll-bar:vertical .track,
+.ClintList .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+.LogList .scroll-bar:vertical .thumb,
+.ClintList .scroll-bar:vertical .thumb {
+    -fx-background-color: #475569;
+    -fx-background-radius: 10px;
+    -fx-background-insets: 1px;
+}
+
+.LogList .scroll-bar:vertical .thumb:hover,
+.ClintList .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #64748b;
+}
+
+/* Remove scrollbar arrows */
+.LogList .scroll-bar:vertical .increment-button,
+.LogList .scroll-bar:vertical .decrement-button,
+.ClintList .scroll-bar:vertical .increment-button,
+.ClintList .scroll-bar:vertical .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.LogList .scroll-bar:vertical .increment-arrow,
+.LogList .scroll-bar:vertical .decrement-arrow,
+.ClintList .scroll-bar:vertical .increment-arrow,
+.ClintList .scroll-bar:vertical .decrement-arrow {
+    -fx-shape: "";
+    -fx-padding: 0;
+}
+
+.traffic-chart .chart-vertical-grid-lines,
+.traffic-chart .chart-horizontal-grid-lines {
+    -fx-stroke: transparent;
+}
+
+.traffic-chart .chart-alternative-row-fill,
+.traffic-chart .chart-alternative-column-fill {
+    -fx-fill: transparent;
+}
+
+.traffic-chart .chart-plot-background {
+    -fx-background-color: transparent;
+}
+
+.traffic-chart .chart-series-line {
+    -fx-stroke-width: 2px;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+
+.critical-button {
+    -fx-background-color: #ef4444;
+    -fx-text-fill: white;
+    -fx-opacity: 0.7;
 }
