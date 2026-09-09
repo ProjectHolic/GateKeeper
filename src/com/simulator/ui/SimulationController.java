@@ -7,7 +7,6 @@ import com.simulator.model.RequestType;
 import com.simulator.model.ViolationLevel;
 import com.simulator.policy.FixedWindowPolicy;
 import com.simulator.policy.RatePolicy;
-
 import javafx.animation.Animation;
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
@@ -37,7 +36,6 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-
 import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 
@@ -281,7 +279,7 @@ public class SimulationController {
                                     validRequestsThisSecond = 0;
 
                                     if (trafficSeries.getData().size() > 20) {
-                                        trafficSeries.getData().remove(0);
+                                        trafficSeries.getData().removeFirst();
                                     }
                                 }
                         )
