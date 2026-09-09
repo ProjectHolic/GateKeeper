@@ -29,6 +29,9 @@ public class Log {
         return this.type;
     }
 
+    public String getStatus() {
+        return status;
+    }
 
     @Override
     public String toString() {

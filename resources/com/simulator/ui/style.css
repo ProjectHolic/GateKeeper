@@ -202,25 +202,29 @@
 /* ===== Scrollbar for both ListViews ===== */
 
 .LogList .scroll-bar:vertical,
-.ClintList .scroll-bar:vertical {
+.ClintList .scroll-bar:vertical,
+.report-list .scroll-bar:vertical{
     -fx-pref-width: 7px;
     -fx-background-color: transparent;
 }
 
 .LogList .scroll-bar:vertical .track,
-.ClintList .scroll-bar:vertical .track {
+.ClintList .scroll-bar:vertical .track,
+.report-list .scroll-bar:vertical .track{
     -fx-background-color: transparent;
 }
 
 .LogList .scroll-bar:vertical .thumb,
-.ClintList .scroll-bar:vertical .thumb {
+.ClintList .scroll-bar:vertical .thumb,
+.report-list .scroll-bar:vertical .thumb{
     -fx-background-color: #475569;
     -fx-background-radius: 10px;
     -fx-background-insets: 1px;
 }
 
 .LogList .scroll-bar:vertical .thumb:hover,
-.ClintList .scroll-bar:vertical .thumb:hover {
+.ClintList .scroll-bar:vertical .thumb:hover ,
+.report-list .scroll-bar:vertical .thumb:hover{
     -fx-background-color: #64748b;
 }
 
@@ -228,7 +232,10 @@
 .LogList .scroll-bar:vertical .increment-button,
 .LogList .scroll-bar:vertical .decrement-button,
 .ClintList .scroll-bar:vertical .increment-button,
-.ClintList .scroll-bar:vertical .decrement-button {
+.ClintList .scroll-bar:vertical .decrement-button,
+.report-list .scroll-bar:vertical .increment-button,
+.report-list .scroll-bar:vertical .decrement-button
+{
     -fx-background-color: transparent;
     -fx-padding: 0;
 }
@@ -236,7 +243,9 @@
 .LogList .scroll-bar:vertical .increment-arrow,
 .LogList .scroll-bar:vertical .decrement-arrow,
 .ClintList .scroll-bar:vertical .increment-arrow,
-.ClintList .scroll-bar:vertical .decrement-arrow {
+.ClintList .scroll-bar:vertical .decrement-arrow,
+.report-list .scroll-bar:vertical .increment-arrow,
+.report-list .scroll-bar:vertical .decrement-arrow{
     -fx-shape: "";
     -fx-padding: 0;
 }
