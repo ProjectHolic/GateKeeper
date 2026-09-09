@@ -16,7 +16,7 @@ public class Client {
     private final IntegerProperty violation =
             new SimpleIntegerProperty(0);
 
-    private ViolationLevel level;
+    private ViolationLevel level = ViolationLevel.NONE;
 
     public Client(String name) {
         this.name = name;
