@@ -1,7 +1,9 @@
 package com.simulator.model;
 
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
 
 import java.util.UUID;
 
@@ -16,7 +18,8 @@ public class Client {
     private final IntegerProperty violation =
             new SimpleIntegerProperty(0);
 
-    private ViolationLevel level = ViolationLevel.NONE;
+    private final ObjectProperty<ViolationLevel> level =
+            new SimpleObjectProperty<>(ViolationLevel.NONE);
 
     public Client(String name) {
         this.name = name;
@@ -61,11 +64,15 @@ public class Client {
 
 
     public ViolationLevel getLevel() {
+        return level.get();
+    }
+
+    public ObjectProperty<ViolationLevel> levelProperty() {
         return level;
     }
 
     public void setLevel(ViolationLevel level) {
-        this.level = level;
+        this.level.set(level);
     }
 
   @Override

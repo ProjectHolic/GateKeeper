@@ -37,21 +37,21 @@
 /* List cells (actual items) */
 .ClintLog .list-cell {
     -fx-background-color: transparent;
-    -fx-background-radius: 8px;
-    -fx-border-radius: 8px;
-    -fx-text-fill: #e5e7eb;
-    -fx-font-size: 14px;
-    -fx-padding: 8 12;
+    -fx-padding: 3 6;
 }
 
-/* Hover effect */
+.ClintLog .list-cell:empty {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
 .ClintLog .list-cell:filled:hover {
-    -fx-background-color: #1e293b;
+    -fx-background-color: transparent;
 }
 
-/* Selected item */
 .ClintLog .list-cell:selected {
-    -fx-background-color: #334155;
+    -fx-background-color: transparent;
 }
 
 
@@ -203,6 +203,7 @@
 
 .LogList .scroll-bar:vertical,
 .ClintList .scroll-bar:vertical,
+.ClintLog .scroll-bar:vertical,
 .report-list .scroll-bar:vertical{
     -fx-pref-width: 7px;
     -fx-background-color: transparent;
@@ -210,12 +211,14 @@
 
 .LogList .scroll-bar:vertical .track,
 .ClintList .scroll-bar:vertical .track,
+.ClintLog .scroll-bar:vertical .track,
 .report-list .scroll-bar:vertical .track{
     -fx-background-color: transparent;
 }
 
 .LogList .scroll-bar:vertical .thumb,
 .ClintList .scroll-bar:vertical .thumb,
+.ClintLog .scroll-bar:vertical .thumb,
 .report-list .scroll-bar:vertical .thumb{
     -fx-background-color: #475569;
     -fx-background-radius: 10px;
@@ -224,6 +227,7 @@
 
 .LogList .scroll-bar:vertical .thumb:hover,
 .ClintList .scroll-bar:vertical .thumb:hover ,
+.ClintLog .scroll-bar:vertical .thumb:hover,
 .report-list .scroll-bar:vertical .thumb:hover{
     -fx-background-color: #64748b;
 }
@@ -233,6 +237,8 @@
 .LogList .scroll-bar:vertical .decrement-button,
 .ClintList .scroll-bar:vertical .increment-button,
 .ClintList .scroll-bar:vertical .decrement-button,
+.ClintLog .scroll-bar:vertical .increment-button,
+.ClintLog .scroll-bar:vertical .decrement-button,
 .report-list .scroll-bar:vertical .increment-button,
 .report-list .scroll-bar:vertical .decrement-button
 {
@@ -244,9 +250,20 @@
 .LogList .scroll-bar:vertical .decrement-arrow,
 .ClintList .scroll-bar:vertical .increment-arrow,
 .ClintList .scroll-bar:vertical .decrement-arrow,
+.ClintLog .scroll-bar:vertical .increment-arrow,
+.ClintLog .scroll-bar:vertical .decrement-arrow,
 .report-list .scroll-bar:vertical .increment-arrow,
 .report-list .scroll-bar:vertical .decrement-arrow{
     -fx-shape: "";
+    -fx-padding: 0;
+}
+
+/* Hide horizontal scrollbars for ClintLog and LogList */
+.ClintLog .scroll-bar:horizontal,
+.LogList .scroll-bar:horizontal {
+    -fx-pref-height: 0px;
+    -fx-max-height: 0px;
+    -fx-opacity: 0;
     -fx-padding: 0;
 }
 
@@ -275,3 +292,91 @@
     -fx-text-fill: white;
     -fx-opacity: 0.7;
 }
+
+/* ===== Abuse Report Modal Styles ===== */
+
+.report-list {
+    -fx-background-color: transparent;
+    -fx-control-inner-background: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.report-list .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 4 0 6 0;
+    -fx-text-fill: white;
+}
+
+.report-list .list-cell:empty {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+/* Hide horizontal scrollbar completely in report list */
+.report-list .scroll-bar:horizontal {
+    -fx-pref-height: 0px;
+    -fx-max-height: 0px;
+    -fx-opacity: 0;
+    -fx-padding: 0;
+}
+
+.report-list .scroll-bar:horizontal .thumb,
+.report-list .scroll-bar:horizontal .track,
+.report-list .scroll-bar:horizontal .increment-button,
+.report-list .scroll-bar:horizontal .decrement-button {
+    -fx-pref-height: 0px;
+    -fx-max-height: 0px;
+    -fx-padding: 0;
+}
+
+.report-search-field {
+    -fx-background-color: #1e293b;
+    -fx-text-fill: #f8fafc;
+    -fx-prompt-text-fill: #64748b;
+    -fx-border-color: #334155;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 6 12 6 12;
+    -fx-font-size: 12px;
+}
+
+.report-search-field:focused {
+    -fx-border-color: #3b82f6;
+    -fx-background-color: #0f172a;
+}
+
+.report-filter-btn {
+    -fx-background-color: #1e293b;
+    -fx-text-fill: #94a3b8;
+    -fx-border-color: #334155;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 5 12 5 12;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.report-filter-btn:hover {
+    -fx-background-color: #334155;
+    -fx-text-fill: white;
+}
+
+.report-filter-btn.active {
+    -fx-background-color: #2563eb;
+    -fx-text-fill: white;
+    -fx-border-color: #3b82f6;
+}
+
+.kpi-card {
+    -fx-background-color: #1e293b;
+    -fx-border-color: #334155;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 8 12;
+}
+
+
+
