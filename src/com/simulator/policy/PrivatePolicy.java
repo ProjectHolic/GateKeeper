@@ -13,9 +13,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-
-//Not implemented to UI till now --> 06:47 AM
-
 public class PrivatePolicy implements RatePolicy {
 
     private static final int DAYS_IN_6_MONTHS = 180;
