@@ -13,6 +13,9 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+
+//This policy isn't implemented with UI till now --> 6:51AM
+
 public class PrivatePolicy implements RatePolicy {
 
     private static final int DAYS_IN_6_MONTHS = 180;
@@ -63,7 +66,7 @@ public class PrivatePolicy implements RatePolicy {
             return ViolationLevel.HIGH; // Warning for spamming
         }
 
-        recordRequest(client.getName());
+        recordRequest(client.getName()); //storing new requests
         return ViolationLevel.NONE;
     }
 
