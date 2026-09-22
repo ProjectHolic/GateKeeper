@@ -323,11 +323,11 @@ public class SimulationController {
         root.setAlignment(Pos.TOP_CENTER);
         root.setStyle(
                 "-fx-background-color: #0b1329;" +
-                "-fx-border-color: #334155;" +
-                "-fx-border-width: 1.5;" +
-                "-fx-background-radius: 14;" +
-                "-fx-border-radius: 14;" +
-                "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.75), 25, 0.35, 0, 8);"
+                        "-fx-border-color: #334155;" +
+                        "-fx-border-width: 1.5;" +
+                        "-fx-background-radius: 14;" +
+                        "-fx-border-radius: 14;" +
+                        "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.75), 25, 0.35, 0, 8);"
         );
 
         // ── Header Bar (Draggable) ────────────────────────────
@@ -350,7 +350,7 @@ public class SimulationController {
         iconBadge.setMaxSize(34, 34);
         iconBadge.setStyle(
                 "-fx-background-color: rgba(56, 189, 248, 0.12);" +
-                "-fx-border-color: rgba(56, 189, 248, 0.35);"
+                        "-fx-border-color: rgba(56, 189, 248, 0.35);"
         );
         SVGPath shieldIcon = new SVGPath();
         shieldIcon.setContent("M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z");
@@ -374,23 +374,23 @@ public class SimulationController {
         closeIconButton.setTextFill(Color.web("#94a3b8"));
         closeIconButton.setStyle(
                 "-fx-background-color: rgba(255, 255, 255, 0.05);" +
-                "-fx-background-radius: 14;" +
-                "-fx-cursor: hand;" +
-                "-fx-padding: 0;"
+                        "-fx-background-radius: 14;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-padding: 0;"
         );
         closeIconButton.setOnMouseEntered(e -> closeIconButton.setStyle(
                 "-fx-background-color: #ef4444;" +
-                "-fx-text-fill: white;" +
-                "-fx-background-radius: 14;" +
-                "-fx-cursor: hand;" +
-                "-fx-padding: 0;"
+                        "-fx-text-fill: white;" +
+                        "-fx-background-radius: 14;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-padding: 0;"
         ));
         closeIconButton.setOnMouseExited(e -> closeIconButton.setStyle(
                 "-fx-background-color: rgba(255, 255, 255, 0.05);" +
-                "-fx-text-fill: #94a3b8;" +
-                "-fx-background-radius: 14;" +
-                "-fx-cursor: hand;" +
-                "-fx-padding: 0;"
+                        "-fx-text-fill: #94a3b8;" +
+                        "-fx-background-radius: 14;" +
+                        "-fx-cursor: hand;" +
+                        "-fx-padding: 0;"
         ));
         closeIconButton.setOnAction(e -> popup.close());
 
@@ -431,19 +431,19 @@ public class SimulationController {
         closeButton.setTextFill(Color.WHITE);
         closeButton.setStyle(
                 "-fx-background-color: #2563eb;" +
-                "-fx-background-radius: 8;" +
-                "-fx-cursor: hand;"
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;"
         );
         closeButton.setOnAction(e -> popup.close());
         closeButton.setOnMouseEntered(e -> closeButton.setStyle(
                 "-fx-background-color: #1d4ed8;" +
-                "-fx-background-radius: 8;" +
-                "-fx-cursor: hand;"
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;"
         ));
         closeButton.setOnMouseExited(e -> closeButton.setStyle(
                 "-fx-background-color: #2563eb;" +
-                "-fx-background-radius: 8;" +
-                "-fx-cursor: hand;"
+                        "-fx-background-radius: 8;" +
+                        "-fx-cursor: hand;"
         ));
 
         root.getChildren().addAll(
@@ -495,10 +495,10 @@ public class SimulationController {
         listView.setMaxWidth(Double.MAX_VALUE);
         listView.setStyle(
                 "-fx-background-color: transparent;" +
-                "-fx-control-inner-background: transparent;" +
-                "-fx-background-insets: 0;" +
-                "-fx-padding: 0;" +
-                "-fx-hbar-policy: never;"
+                        "-fx-control-inner-background: transparent;" +
+                        "-fx-background-insets: 0;" +
+                        "-fx-padding: 0;" +
+                        "-fx-hbar-policy: never;"
         );
 
         Label emptyLabel = new Label("No client records available");
@@ -522,7 +522,7 @@ public class SimulationController {
 
             setStyle(
                     "-fx-background-color: transparent;" +
-                    "-fx-padding: 4 0 6 0;"
+                            "-fx-padding: 4 0 6 0;"
             );
 
             if (empty || client == null) {
@@ -546,25 +546,25 @@ public class SimulationController {
 
             card.setStyle(
                     "-fx-background-color: " + cardBg + ";" +
-                    "-fx-border-color: " + cardBorder + ";" +
-                    "-fx-border-width: 1.2;" +
-                    "-fx-background-radius: 10;" +
-                    "-fx-border-radius: 10;"
+                            "-fx-border-color: " + cardBorder + ";" +
+                            "-fx-border-width: 1.2;" +
+                            "-fx-background-radius: 10;" +
+                            "-fx-border-radius: 10;"
             );
 
             card.setOnMouseEntered(e -> card.setStyle(
                     "-fx-background-color: #18233c;" +
-                    "-fx-border-color: " + (isBlocked ? "#ef4444" : (isSuspicious ? "#f59e0b" : "#38bdf8")) + ";" +
-                    "-fx-border-width: 1.2;" +
-                    "-fx-background-radius: 10;" +
-                    "-fx-border-radius: 10;"
+                            "-fx-border-color: " + (isBlocked ? "#ef4444" : (isSuspicious ? "#f59e0b" : "#38bdf8")) + ";" +
+                            "-fx-border-width: 1.2;" +
+                            "-fx-background-radius: 10;" +
+                            "-fx-border-radius: 10;"
             ));
             card.setOnMouseExited(e -> card.setStyle(
                     "-fx-background-color: " + cardBg + ";" +
-                    "-fx-border-color: " + cardBorder + ";" +
-                    "-fx-border-width: 1.2;" +
-                    "-fx-background-radius: 10;" +
-                    "-fx-border-radius: 10;"
+                            "-fx-border-color: " + cardBorder + ";" +
+                            "-fx-border-width: 1.2;" +
+                            "-fx-background-radius: 10;" +
+                            "-fx-border-radius: 10;"
             ));
 
             // Row 1: Name + Status Badge
@@ -587,27 +587,27 @@ public class SimulationController {
                 statusBadge.setTextFill(Color.web("#f87171"));
                 statusBadge.setStyle(
                         "-fx-background-color: rgba(239, 68, 68, 0.15);" +
-                        "-fx-border-color: rgba(239, 68, 68, 0.4);" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-radius: 12;"
+                                "-fx-border-color: rgba(239, 68, 68, 0.4);" +
+                                "-fx-background-radius: 12;" +
+                                "-fx-border-radius: 12;"
                 );
             } else if (isSuspicious) {
                 statusBadge.setText("SUSPICIOUS");
                 statusBadge.setTextFill(Color.web("#fbbf24"));
                 statusBadge.setStyle(
                         "-fx-background-color: rgba(245, 158, 11, 0.15);" +
-                        "-fx-border-color: rgba(245, 158, 11, 0.4);" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-radius: 12;"
+                                "-fx-border-color: rgba(245, 158, 11, 0.4);" +
+                                "-fx-background-radius: 12;" +
+                                "-fx-border-radius: 12;"
                 );
             } else {
                 statusBadge.setText("NORMAL");
                 statusBadge.setTextFill(Color.web("#4ade80"));
                 statusBadge.setStyle(
                         "-fx-background-color: rgba(34, 197, 94, 0.15);" +
-                        "-fx-border-color: rgba(34, 197, 94, 0.4);" +
-                        "-fx-background-radius: 12;" +
-                        "-fx-border-radius: 12;"
+                                "-fx-border-color: rgba(34, 197, 94, 0.4);" +
+                                "-fx-background-radius: 12;" +
+                                "-fx-border-radius: 12;"
                 );
             }
 
@@ -675,9 +675,9 @@ public class SimulationController {
             track.setMaxWidth(Double.MAX_VALUE);
             track.setStyle(
                     "-fx-background-color: #0b1329;" +
-                    "-fx-border-color: #1e293b;" +
-                    "-fx-border-radius: 4;" +
-                    "-fx-background-radius: 4;"
+                            "-fx-border-color: #1e293b;" +
+                            "-fx-border-radius: 4;" +
+                            "-fx-background-radius: 4;"
             );
 
             Region fill = createFill(score);
@@ -710,7 +710,7 @@ public class SimulationController {
 
         fill.setStyle(
                 "-fx-background-color: " + fillColor + ";" +
-                "-fx-background-radius: 4;"
+                        "-fx-background-radius: 4;"
         );
         return fill;
     }
@@ -724,7 +724,7 @@ public class SimulationController {
 
             setStyle(
                     "-fx-background-color: transparent;" +
-                    "-fx-padding: 3 6;"
+                            "-fx-padding: 3 6;"
             );
 
             if (empty || client == null) {
@@ -759,27 +759,27 @@ public class SimulationController {
                 statusBadge.setTextFill(Color.web("#f87171"));
                 statusBadge.setStyle(
                         "-fx-background-color: #450a0a;" +
-                        "-fx-border-color: #ef4444;" +
-                        "-fx-background-radius: 10;" +
-                        "-fx-border-radius: 10;"
+                                "-fx-border-color: #ef4444;" +
+                                "-fx-background-radius: 10;" +
+                                "-fx-border-radius: 10;"
                 );
             } else if (isSuspicious) {
                 statusBadge.setText("SUSPICIOUS");
                 statusBadge.setTextFill(Color.web("#fbbf24"));
                 statusBadge.setStyle(
                         "-fx-background-color: #451a03;" +
-                        "-fx-border-color: #f59e0b;" +
-                        "-fx-background-radius: 10;" +
-                        "-fx-border-radius: 10;"
+                                "-fx-border-color: #f59e0b;" +
+                                "-fx-background-radius: 10;" +
+                                "-fx-border-radius: 10;"
                 );
             } else {
                 statusBadge.setText("ACTIVE");
                 statusBadge.setTextFill(Color.web("#4ade80"));
                 statusBadge.setStyle(
                         "-fx-background-color: #052e16;" +
-                        "-fx-border-color: #22c55e;" +
-                        "-fx-background-radius: 10;" +
-                        "-fx-border-radius: 10;"
+                                "-fx-border-color: #22c55e;" +
+                                "-fx-background-radius: 10;" +
+                                "-fx-border-radius: 10;"
                 );
             }
 
@@ -807,10 +807,10 @@ public class SimulationController {
 
             card.setStyle(
                     "-fx-background-color: " + bg + ";" +
-                    "-fx-border-color: " + border + ";" +
-                    "-fx-border-width: " + borderWidth + ";" +
-                    "-fx-background-radius: 8;" +
-                    "-fx-border-radius: 8;"
+                            "-fx-border-color: " + border + ";" +
+                            "-fx-border-width: " + borderWidth + ";" +
+                            "-fx-background-radius: 8;" +
+                            "-fx-border-radius: 8;"
             );
         }
     }

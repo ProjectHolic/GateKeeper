@@ -23,7 +23,7 @@
 <?import javafx.scene.shape.Circle?>
 <?import javafx.scene.text.Font?>
 
-<StackPane fx:id="root" styleClass="root" stylesheets="@style.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.simulator.ui.SimulationController">
+<StackPane fx:id="root" styleClass="root" stylesheets="@style.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.simulator.ui.SimulationController">
     <children>
         <BorderPane fx:id="bp" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="1000.0" stylesheets="@style.css">
             <top>
@@ -99,9 +99,9 @@
                             </children>
                         </Pane>
                         <ListView fx:id="ClientList" prefHeight="463.0" prefWidth="250.0" styleClass="ClintLog">
-                     <cursor>
-                        <Cursor fx:constant="DEFAULT" />
-                     </cursor></ListView>
+                            <cursor>
+                                <Cursor fx:constant="DEFAULT" />
+                            </cursor></ListView>
                     </children>
                 </VBox>
             </left>
@@ -192,9 +192,9 @@
                                 <Pane prefHeight="237.0" prefWidth="497.0">
                                     <children>
                                         <Pane fx:id="SimPanel" layoutX="22.0" layoutY="26.0" prefHeight="186.0" prefWidth="358.0" styleClass="SimCard" stylesheets="@style.css">
-                                 <children>
-                                    <ComboBox fx:id="typeChoiceBox" layoutX="226.0" layoutY="67.0" prefHeight="26.0" prefWidth="120.0" />
-                                 </children></Pane>
+                                            <children>
+                                                <ComboBox fx:id="typeChoiceBox" layoutX="226.0" layoutY="67.0" prefHeight="26.0" prefWidth="120.0" />
+                                            </children></Pane>
                                         <Button fx:id="Sendrequestbutton" layoutX="34.0" layoutY="143.0" mnemonicParsing="false" onAction="#onSingleRequest" styleClass="single-req-btn" text="Single Request" textFill="WHITE" />
                                         <Label layoutX="34.0" layoutY="46.0" prefHeight="27.0" prefWidth="220.0" text="Manual Simulation" textFill="#94a3b8">
                                             <font>
