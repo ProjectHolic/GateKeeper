@@ -197,8 +197,11 @@ public class SimulationController {
         }
     }
 
+    // @todo : implement --> thresholdDetector( client, timeStamp, logs)
+
     @FXML
-    private void onSingleRequest() {
+    private void onSingleRequest() { // @todo : modify --> implement : add custom policy according to client profile
+                                    // RatePolicy clientPolicy = new FixedWindow(WINDOW_SIZE, thresholdDetector( client, timeStamp, logs));
 
         Client client =
                 clientChoiceBox
@@ -325,8 +328,6 @@ public class SimulationController {
                 "-fx-background-color: #0b1329;" +
                 "-fx-border-color: #334155;" +
                 "-fx-border-width: 1.5;" +
-                "-fx-background-radius: 14;" +
-                "-fx-border-radius: 14;" +
                 "-fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.75), 25, 0.35, 0, 8);"
         );
 

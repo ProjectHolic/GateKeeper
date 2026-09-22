@@ -32,10 +32,6 @@ public class Client {
         return name;
     }
 
-    public String getId() {
-        return id;
-    }
-
 
     public int getTotalRequest() {
         return totalRequest.get();
