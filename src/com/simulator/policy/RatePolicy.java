@@ -7,5 +7,4 @@ import javafx.collections.ObservableList;
 public interface RatePolicy {
 
     public ViolationLevel evaluate(Client client, ObservableList<Request> requests);
-
 }

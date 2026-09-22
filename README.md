@@ -25,10 +25,10 @@ example if UI add some client then at backend `List<Client> clints` should have 
 Implement all module inside the Module package such as `Client`, `Request`, `Abuse Report` and so on.
 
 ## 3. Policy
-Implement RateLimit Policies such as `FixedWindow` & `SlidingWindow`.
+Implement RateLimit Policies such as `FixedWindow`, `SlidingWindow`, `PrivatePolicy`.
 ## 4.  Services 
 
-Implement services like `BurstGeanarate` or `Single Request`.
+Implement services like `BurstGeanarate` or `Single Request` in `SimulationController`.
 
 ---
 

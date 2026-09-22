@@ -1,7 +1,10 @@
 package com.simulator.model;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 public class Log {
     private final Client client;
@@ -14,6 +17,21 @@ public class Log {
         this.time =  request.getTime();
         this.type = request.getType();
         this.status = status;
+
+        appendToCSV(); //store each log in csv
+    }
+
+    private void appendToCSV(){
+        File file = new File("src/com/simulator/model/logs.csv");
+
+        try(BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))){
+            String line = client.getName() + ","+ type+","+time+","+status;
+
+            writer.write(line);
+            writer.newLine();
+        } catch (IOException e) {
+            System.out.println("Failed to write logs.csv {NOOB} : "+e.getMessage());
+        }
     }
 
 
