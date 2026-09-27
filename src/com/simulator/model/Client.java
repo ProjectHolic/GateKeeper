@@ -90,6 +90,22 @@ public class Client {
         return lastViolationTime;
     }
 
+    /**
+     * Restores telemetry loaded from a scenario file.
+     *
+     * <p>{@code level} is not a parameter: it is derived from the score and the
+     * thresholds, so it can never come back inconsistent with the number beside
+     * it. {@code lastViolationTime} stays null, which means a client that was
+     * locked out when the scenario was exported gets a fresh cooldown chance
+     * rather than being blocked forever.
+     */
+    public void restore(int totalRequest, int violationCount, int violationScore) {
+        this.totalRequest.set(totalRequest);
+        this.violationCount.set(violationCount);
+        this.violationScore.set(violationScore);
+        this.lastViolationTime = null;
+    }
+
     /** Returns the client to a pristine state, as if it had just been registered. */
     public void reset() {
         totalRequest.set(0);

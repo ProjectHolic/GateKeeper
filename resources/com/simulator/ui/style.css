@@ -216,6 +216,91 @@
 
 }
 
+/* ===== Spinners (all 13 live in the settings dialog) =====
+
+   A Spinner is three controls: the editor, the increment arrow button and the
+   decrement arrow button. Styling the Spinner itself leaves the two arrow
+   buttons on JavaFX's default light grey, which is the one pale thing left in
+   the dialog, so they are targeted explicitly.
+
+   The class names are "increment-arrow-button" / "decrement-arrow-button" --
+   not "increment-button" / "decrement-button". */
+
+.spinner{
+    -fx-background-color: #1e293b;
+    -fx-border-color: #334155;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+.spinner .increment-arrow-button,
+.spinner .decrement-arrow-button{
+    -fx-background-color: #1e293b;
+    -fx-border-color: #334155;
+    -fx-border-width: 0 0 0 1;
+    -fx-pref-width: 20;
+    -fx-cursor: hand;
+}
+.spinner .increment-arrow-button:hover,
+.spinner .decrement-arrow-button:hover{
+    -fx-background-color: #334155;
+}
+.spinner .increment-arrow-button:pressed,
+.spinner .decrement-arrow-button:pressed{
+    -fx-background-color: #3b82f6;
+}
+.spinner .increment-arrow,
+.spinner .decrement-arrow{
+    -fx-background-color: #94a3b8;
+    -fx-pref-width: 7;
+    -fx-pref-height: 4;
+}
+.spinner .increment-arrow-button:hover .increment-arrow,
+.spinner .decrement-arrow-button:hover .decrement-arrow{
+    -fx-background-color: #e2e8f0;
+}
+.spinner:disabled .increment-arrow,
+.spinner:disabled .decrement-arrow{
+    -fx-background-color: #475569;
+    -fx-opacity: 0.6;
+}
+
+/* The settings dialog is the only ScrollPane in the app; without this its
+   vertical scrollbar keeps JavaFX's default light grey. The ScrollPane node
+   itself carries an inline style, but a rule for its scrollbar child still
+   applies, because inline styles do not cascade to descendants. */
+.scroll-pane .scroll-bar:vertical{
+    -fx-pref-width: 7px;
+    -fx-background-color: transparent;
+}
+.scroll-pane .scroll-bar:vertical .track,
+.scroll-pane .scroll-bar:vertical .decrement-track,
+.scroll-pane .scroll-bar:vertical .increment-track{
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+.scroll-pane .scroll-bar:vertical .thumb{
+    -fx-background-color: #475569;
+    -fx-background-radius: 10px;
+}
+.scroll-pane .scroll-bar:vertical .thumb:hover{
+    -fx-background-color: #64748b;
+}
+.scroll-pane .scroll-bar:vertical .increment-button,
+.scroll-pane .scroll-bar:vertical .decrement-button{
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-background-radius: 0;
+}
+.scroll-pane .scroll-bar:vertical .increment-arrow,
+.scroll-pane .scroll-bar:vertical .decrement-arrow{
+    -fx-shape: "";
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+.scroll-pane > .corner{
+    -fx-background-color: transparent;
+}
+
 /* ===== Scrollbar for both ListViews ===== */
 
 .LogList .scroll-bar:vertical,

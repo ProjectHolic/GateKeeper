@@ -28,14 +28,15 @@ troubleshooting guide.
 13. [The `ui` package, file by file](#13-the-ui-package-file-by-file)
 14. [The FXML layout, widget by widget](#14-the-fxml-layout-widget-by-widget)
 15. [The stylesheet, rule by rule](#15-the-stylesheet-rule-by-rule)
-16. [The bundled dataset](#16-the-bundled-dataset)
-17. [Runtime flows, step by step](#17-runtime-flows-step-by-step)
-18. [Performance engineering](#18-performance-engineering)
-19. [Design decisions and their rationale](#19-design-decisions-and-their-rationale)
-20. [Recipes: how to change things](#20-recipes-how-to-change-things)
-21. [Troubleshooting](#21-troubleshooting)
-22. [Known limitations](#22-known-limitations)
-23. [Glossary](#23-glossary)
+16. [Scenario export and import](#16-scenario-export-and-import)
+17. [The bundled dataset](#17-the-bundled-dataset)
+18. [Runtime flows, step by step](#18-runtime-flows-step-by-step)
+19. [Performance engineering](#19-performance-engineering)
+20. [Design decisions and their rationale](#20-design-decisions-and-their-rationale)
+21. [Recipes: how to change things](#21-recipes-how-to-change-things)
+22. [Troubleshooting](#22-troubleshooting)
+23. [Known limitations](#23-known-limitations)
+24. [Glossary](#24-glossary)
 24. [Appendix A: complete function index](#appendix-a-complete-function-index)
 25. [Appendix B: the three cell renderers in detail](#appendix-b-the-three-cell-renderers-in-detail)
 
@@ -163,7 +164,7 @@ GateKeeper/
 ├── resources/                      "java-resource" source root → classpath
 │   └── com/simulator/ui/
 │       ├── dashboard.fxml          Main window layout, 226 lines (Scene Builder output)
-│       ├── style.css               Dark theme, 346 lines, 58 rules
+│       ├── style.css               Dark theme, 431 lines, 72 rules
 │       └── img/logo.png            500x500 logo, shown in the header
 │
 ├── src/                            Java source root (also holds a runtime data file)
@@ -171,21 +172,36 @@ GateKeeper/
 │   │   ├── Main.java               Shim entry point, 9 lines
 │   │   ├── files/
 │   │   │   └── logs.csv            Bundled request history: 516,544 rows, 24 MB
-│   │   ├── model/                  Domain objects
-│   │   │   ├── Client.java                     122 lines
+│   │   ├── model/                  Domain objects, no JavaFX
+│   │   │   ├── Client.java                     138 lines
 │   │   │   ├── DailyAcceptedIndex.java          93 lines
 │   │   │   ├── Log.java                         43 lines
 │   │   │   ├── Request.java                     29 lines
 │   │   │   ├── RequestType.java                  8 lines
+│   │   │   ├── SimulationSettings.java          The settings value object; owns
+│   │   │   │                                    resolveThreshold and the defaults
 │   │   │   └── ViolationLevel.java               8 lines
+│   │   ├── io/                     Reading and writing files, no JavaFX
+│   │   │   ├── HistoryLoader.java              Bundled request history, row by row
+│   │   │   ├── Json.java                      Minimal strict JSON reader/writer
+│   │   │   ├── ScenarioIO.java               Scenario + log-CSV files
+│   │   │   └── ScenarioService.java           Scenario document ⇄ settings + clients
 │   │   ├── policy/                 Rate-limiting algorithms
 │   │   │   ├── RatePolicy.java                  40 lines
 │   │   │   ├── AbstractWindowPolicy.java       129 lines
 │   │   │   ├── FixedWindowPolicy.java           40 lines
+│   │   │   ├── PolicyType.java                  The two policies, and their names
 │   │   │   └── SlidingWindowPolicy.java         28 lines
 │   │   └── ui/                     JavaFX layer
-│   │       ├── MainApp.java                    24 lines
-│   │       └── SimulationController.java     1913 lines
+│   │       ├── MainApp.java                    41 lines
+│   │       ├── AbuseReportView.java          The abuse report modal
+│   │       ├── NoticeDialog.java             The one-button / confirm modal
+│   │       ├── SettingsDialogView.java       The settings modal
+│   │       ├── SimulationController.java     936 lines — wiring and flow only
+│   │       └── cells/               ListCell renderers, one row each
+│   │           ├── ClientCardCell.java          Sidebar client row
+│   │           ├── ClientReportCell.java        Abuse report client row
+│   │           └── LogCell.java                 Request log row
 │   │
 └── out/                            IntelliJ build output (git-ignored)
 ```
@@ -604,7 +620,7 @@ window, then recovers gradually as it behaves.
 
 Data flows strictly downward: `policy` depends on `model`, `ui` depends on both.
 The `model` package depends on nothing in the project (though `Client` and
-`RatePolicy` do import JavaFX types — see [§22](#22-known-limitations)).
+`RatePolicy` do import JavaFX types — see [§22](#23-known-limitations)).
 
 ### The five collections
 
@@ -650,7 +666,7 @@ observed list changes.
 requests were **accepted**. It exists because deriving a limit needs "the
 busiest day this client ever had", and rescanning 500,000 log rows to find that
 on every single request is far too slow. See
-[§18](#18-performance-engineering).
+[§18](#19-performance-engineering).
 
 It is kept in step with `logs` by a `ListChangeListener`, so it is correct for
 *any* mutation path rather than depending on scattered manual bookkeeping.
@@ -723,9 +739,13 @@ Client creation — which mutates the `clients` list — happens in
 
 ### Settings state (mutated only by Save or Reset)
 
-| Field | Default | Meaning |
+These are not fields on the controller any more. The controller holds one
+`private final SimulationSettings settings`, and these are its properties — see
+[§25](#25-the-controller-split) and `model/SimulationSettings`.
+
+| Property | Default | Meaning |
 | --- | --- | --- |
-| `selectedPolicy` | `FIXED_WINDOW` | Which policy class to build. |
+| `policy` | `FIXED_WINDOW` | Which policy class to build. |
 | `windowSeconds` | 10 | Window length. |
 | `customThresholds` | all 0 | Per type; 0 means "derive from history". |
 | `severityMultipliers` | READ 1, WRITE 2, LOGIN 3, PAYMENT 2 | Penalty weights. |
@@ -784,7 +804,7 @@ the badge can never disagree with the score.
 
 `Client` does not override `equals`, so it has *identity* equality: two clients
 with the same name are still different objects. That matters, and is discussed
-in [§19](#19-design-decisions-and-their-rationale).
+in [§19](#20-design-decisions-and-their-rationale).
 
 ### `Request.java` (29 lines)
 
@@ -924,7 +944,33 @@ return new Window(latest.minus(getWindow()), latest.plusNanos(1));
 
 ## 13. The `ui` package, file by file
 
-### `MainApp.java` (24 lines)
+### `com.simulator.io.Json` (285 lines)
+
+A minimal, strict JSON reader and writer. See [§16](#16-scenario-export-and-import)
+for why it is hand-rolled.
+
+| Member | Purpose |
+| --- | --- |
+| `parse(String)` | Returns `Map`, `List`, `String`, `Double`, `Boolean` or null. Throws `JsonException` naming the byte offset on anything it will not accept. |
+| `write(Object)` | Two-space indentation, key order preserved, trailing newline. |
+| `Parser` *(private)* | Recursive descent. Rejects trailing content, unterminated strings, trailing commas, single quotes, unquoted keys, bad literals, unknown escapes, truncated `\u` escapes, and raw control characters in strings. |
+| `JsonException` | Carries the offset so a hand-edit mistake is easy to find. |
+
+Integral doubles are written without a `.0`, so `windowSeconds` appears as `10`
+rather than `10.0`.
+
+### `com.simulator.io.ScenarioIO` (110 lines)
+
+| Member | Purpose |
+| --- | --- |
+| `FORMAT_ID` / `FORMAT_VERSION` | `"gatekeeper-scenario"` and `1`. |
+| `CSV_HEADER` | `"client,type,time,status"`, matching the bundled history. |
+| `writeScenario(File, Map)` | Serialises a document. |
+| `readScenario(File)` | Reads and rejects anything that is not our format at a version this build understands. |
+| `writeLogCsv(File, List<Log>)` | The log in the bundled history's schema, with RFC 4180 quoting. |
+| `orderedMap()` / `describe(Client)` | Small helpers so the caller controls key order. |
+
+### `MainApp.java` (41 lines)
 
 A standard JavaFX `Application`.
 
@@ -942,7 +988,7 @@ stage.show();
 and calls its `initialize()` before returning. The window is fixed at 1000x600
 and not resizable.
 
-### `SimulationController.java` (1913 lines)
+### `SimulationController.java` (936 lines)
 
 The controller for the whole application. It owns all state, wires the FXML
 controls, builds the two modals entirely in Java code, and implements three
@@ -967,7 +1013,6 @@ function index is [Appendix A](#appendix-a-complete-function-index).
 | `DEFAULT_DECAY_AMOUNT` | `1` | " |
 | `DEFAULT_CUSTOM_THRESHOLD` | `0` | " — 0 means "derive from history". |
 | `DEFAULT_SEVERITY_MULTIPLIERS` | immutable map | READ 1, WRITE 2, LOGIN 3, PAYMENT 2. |
-| `HISTORY_TIME_FORMAT` | `yyyy-MM-dd'T'HH:mm:ss` | CSV timestamp parser. |
 | `CLOCK_FORMAT` | `HH:mm:ss` | Log cell display. |
 
 The defaults are named constants rather than literals precisely so that
@@ -986,10 +1031,11 @@ dialog's cross is a genuine cancel.
 
 #### The settings dialog, widget by widget
 
-`buildAndShowSettingsDialog()` is 348 lines of imperative JavaFX. Structure:
+`SettingsDialogView.show(...)` is 470 lines of imperative JavaFX. Structure:
 
 ```
-Stage (TRANSPARENT, APPLICATION_MODAL)          500 x 680
+Stage (TRANSPARENT, APPLICATION_MODAL)          564 x 744  (500x680 card + a 32px
+                                                shadow margin on each side)
 └── StackPane root
     └── VBox card  (max/pref width 500, radius 12, drop shadow)
         ├── HBox headerBar   draggable; "SETTINGS" label, spacer, ✕ button
@@ -1009,6 +1055,10 @@ Stage (TRANSPARENT, APPLICATION_MODAL)          500 x 680
                 │       "Custom Thresholds (per request type, overrides auto)"
                 │     ├── HBox of 4 VBoxes, one per RequestType, Spinner 0..10000
                 │     └── Label  "0 = auto-calculated from history"
+                ├── VBox scenarioSection      "Scenario File"  -> §16
+                │     ├── Label  explanatory note (the log is excluded)
+                │     └── HBox   [Export scenario...] [Import scenario...]
+                │                [Export log (CSV)...]
                 └── HBox buttonRow (right-aligned)
                       ├── Button "Reset Defaults"
                       └── Button "Save"
@@ -1035,10 +1085,10 @@ offset, and mouse-drag sets the stage's screen position accordingly.
 
 #### The abuse report, block by block
 
-`showAbuseReportPopUp(...)` is ~150 lines. Structure:
+`AbuseReportView.show(...)` is 251 lines. Structure:
 
 ```
-Stage (UNDECORATED, APPLICATION_MODAL)          560 x 560
+Stage (UNDECORATED, APPLICATION_MODAL)          624 x 624  (560x560 content + margin)
 └── VBox root (padding 18/22, spacing 14, border, drop shadow)
     ├── HBox headerBar   draggable
     │     ├── StackPane iconBadge   an SVGPath shield, tinted #38bdf8
@@ -1138,7 +1188,7 @@ StackPane #root                styleClass "root", 1000 x 600
 
 ## 15. The stylesheet, rule by rule
 
-`resources/com/simulator/ui/style.css` — 346 lines, 58 rules. Applied to the main
+`resources/com/simulator/ui/style.css` — 431 lines, 72 rules. Applied to the main
 scene via the FXML, and to all three modals from code.
 
 ### Colour vocabulary
@@ -1195,6 +1245,38 @@ scene via the FXML, and to all three modals from code.
 | `.chart-legend` | Transparent. |
 | `.chart-alternative-row-fill`, `-column-fill` | Transparent (the FXML also sets `alternativeRowFillVisible=false`). |
 
+**Spinners (settings dialog only)**
+
+A JavaFX `Spinner` is three separate controls: the editor, the increment arrow
+button and the decrement arrow button. Styling the `Spinner` leaves the two
+arrow buttons on the default light grey, which is the one pale thing left in the
+dialog, so they are targeted explicitly.
+
+| Selector | Purpose |
+| --- | --- |
+| `.spinner` | `#1e293b` fill, `#334155` border, 6 px radius. |
+| `.spinner .increment-arrow-button` / `… .decrement-arrow-button` | `#1e293b` fill, a left border to separate them from the editor, 20 px wide. |
+| `… :hover` / `… :pressed` | `#334155` on hover, `#3b82f6` while pressed. |
+| `.spinner .increment-arrow` / `… .decrement-arrow` | The triangle itself, `#94a3b8`, lightening to `#e2e8f0` on hover. |
+| `.spinner:disabled …-arrow` | Dimmed `#475569`. |
+
+> The arrow button class names are **`increment-arrow-button`** /
+> **`decrement-arrow-button`**, *not* `increment-button` / `decrement-button`.
+> The shorter names are the natural guess and they silently match nothing, so the
+> buttons stay light.
+
+**Scroll bars (42–48, 56–57)**
+
+A shared block applied to `.LogList`, `.ClintLog` and `.report-list`: 7 px wide,
+transparent track, `#475569` thumb (lightening to `#64748b` on hover), and both
+increment and decrement arrow buttons removed via `-fx-shape: ""`. Horizontal
+bars are collapsed entirely.
+
+A parallel `.scroll-pane …` block covers the settings dialog, which is the only
+`ScrollPane` in the app. The node itself carries an inline style, but a rule for
+its scrollbar *child* still applies, because inline styles do not cascade to
+descendants.
+
 **Buttons (25–33)**
 
 | Selector | Colour |
@@ -1217,12 +1299,7 @@ starts (red) and stops (blue), because inline styles beat CSS.
 `.arrow` white, and the popup list (`.combo-box-popup .list-view`,
 `.list-cell`, `:hover`, `:selected`).
 
-**Scroll bars (42–48, 56–57)**
-
-A shared block applied to `.LogList`, `.ClintLog` and `.report-list`:
-7 px wide, transparent track, `#475569` thumb (lightening to `#64748b` on
-hover), and both increment and decrement arrow buttons removed via
-`-fx-shape: ""`. Horizontal bars are collapsed entirely
+Horizontal scroll bars are collapsed entirely
 (`-fx-pref-height: 0; -fx-max-height: 0; -fx-opacity: 0`).
 
 **Report (53–58)**
@@ -1243,7 +1320,90 @@ still green. Cosmetic, but it is a genuine inconsistency rather than intent.
 
 ---
 
-## 16. The bundled dataset
+## 16. Scenario export and import
+
+The settings dialog carries a **Scenario File** section with three actions. It is
+the only part of the app that writes to disk.
+
+| Button | Writes | Imports |
+| --- | --- | --- |
+| **Export scenario...** | settings + client registry + per-client telemetry, as JSON | — |
+| **Import scenario...** | — | replaces settings and the whole client registry |
+| **Export log (CSV)...** | the request log, in the bundled history's schema | — (write-only) |
+
+### What a scenario file contains
+
+```json
+{
+  "format": "gatekeeper-scenario",
+  "version": 1,
+  "exportedAt": "2026-09-27T22:25:14",
+  "settings": {
+    "policy": "FIXED_WINDOW",
+    "windowSeconds": 10,
+    "warningThreshold": 20,
+    "highThreshold": 50,
+    "criticalThreshold": 100,
+    "decayAmount": 1,
+    "severityMultipliers": { "READ": 1, "WRITE": 2, "LOGIN": 3, "PAYMENT": 2 },
+    "customThresholds":  { "READ": 0, "WRITE": 0, "LOGIN": 0, "PAYMENT": 0 }
+  },
+  "clients": [
+    { "name": "Client-001", "totalRequest": 12, "violationCount": 3, "violationScore": 45 }
+  ]
+}
+```
+
+It is deliberately small, ordered, and hand-editable. Everything in it is
+readable at a glance and safe to change by hand.
+
+### What is deliberately excluded, and why
+
+| Excluded | Reason |
+| --- | --- |
+| **The log history** | 50,000 entries is multi-megabyte, and re-importing old timestamps would feed the "busiest day this client ever had" calculation that derives *every* rate limit. A round trip could therefore silently change the very limits it was meant to preserve. It is exportable separately, as CSV, for inspection. |
+| **`level`** | Derived from the score. Exporting derived state invites a file that disagrees with itself, and on import it is recomputed from the score and thresholds so it cannot be inconsistent. |
+| **`lastViolationTime`** | Not persisted, so a client that was locked out when the file was written gets a **fresh cooldown chance** on import rather than staying blocked forever. |
+| **The request window and history index** | Runtime state with no meaning across sessions. Import clears both. |
+
+### Import semantics
+
+1. The file is read and checked for the `format` id and a supported `version`.
+2. **Every field is parsed and range-checked before any live state is touched.**
+   A bad file is rejected whole; it can never half-apply.
+3. The user is shown a confirmation naming what will be destroyed.
+4. Settings are replaced, and the client registry is replaced wholesale. The
+   log, the request window and the history index are cleared, because telemetry
+   that arrived without a log would otherwise contradict it.
+
+Validation covers: the format id and version; every numeric field's type and
+range (`windowSeconds` 1–3600, thresholds 1–1000, `decayAmount` 0–50, severity
+1–10, custom threshold 0–10000); the `WARNING ≤ HIGH ≤ CRITICAL` ordering;
+known request-type names; and a client list that is non-empty, contains only
+objects, has non-blank names, and has no duplicates (case-insensitively, matching
+the registry rule). Telemetry fields are optional, so a hand-written file can
+list names alone.
+
+`policy` must be `FIXED_WINDOW` or `SLIDING_WINDOW`. Rejections are reported
+verbatim, e.g. `"windowSeconds" is 100000; expected between 1 and 3600.`
+
+### Why hand-rolled JSON
+
+The project has no build file and therefore no dependency management, so adding
+a JSON library would mean editing the hard-coded library path in
+`.idea/libraries/lib.xml`. `Json` therefore covers only the subset the format
+needs — objects, arrays, strings, numbers, booleans, null — and **rejects
+anything else** with a message naming the byte offset, rather than guessing. A
+typo in a hand-edited file fails loudly instead of silently becoming a default.
+
+### One gotcha worth knowing
+
+Importing **replaces live state immediately**, whereas editing the dialog's
+fields only changes a draft that Save commits. If you import and then press
+Save, Save overwrites the import with the dialog's draft. Import, then reopen
+Settings if you want to tweak the result.
+
+## 17. The bundled dataset
 
 `src/com/simulator/files/logs.csv` — 24 MB, 516,544 rows.
 
@@ -1305,7 +1465,7 @@ for how this plays out in practice.
 
 ---
 
-## 17. Runtime flows, step by step
+## 18. Runtime flows, step by step
 
 ### Startup
 
@@ -1381,9 +1541,18 @@ See [§13](#13-the-ui-package-file-by-file) for the widget inventory.
 its list is bound to the same `clients` observable list, it reflects live state
 as it changes.
 
+### Shutdown
+
+Closing the last window triggers `Application.stop()`, which calls
+`MainApp.stop()`. That delegates to `SimulationController.shutdown()`, which
+stops and nulls both the auto-simulation and traffic-sampler `Timeline`s and
+clears `isAutoSimRunning`. It deliberately leaves the button untouched: nothing
+is on screen to see it, and mutating the scene graph during shutdown is best
+avoided.
+
 ---
 
-## 18. Performance engineering
+## 19. Performance engineering
 
 The bundled history is large enough that four things had to be designed
 deliberately. Figures compare the original implementation with the current one,
@@ -1470,7 +1639,7 @@ every request is genuinely evaluated rather than short-circuiting on a lockout:
 
 ---
 
-## 19. Design decisions and their rationale
+## 20. Design decisions and their rationale
 
 **The `Decision` record exists because two questions were conflated.** The policy
 originally returned a `ViolationLevel`, and the controller assigned it directly
@@ -1539,14 +1708,14 @@ the unreachable counter wrap, and four CSS selectors for UI that was never built
 
 ---
 
-## 20. Recipes: how to change things
+## 21. Recipes: how to change things
 
 ### Add a new `RequestType`
 
 1. Add the constant to `RequestType.java`. **The name must be `UPPER_CASE`** — it
    is matched against the CSV with `valueOf`.
 2. Add a severity default in **two** places: the `static` block in
-   `SimulationController` (`DEFAULT_SEVERITY_MULTIPLIERS`) and the switch in
+   `SimulationSettings` (`DEFAULT_SEVERITY_MULTIPLIERS`) and the switch in
    `initializeDefaultSettings()` if you want a non-1 value.
 3. Add the display order in `initialize()`'s `types.addAll(...)`.
 4. Add a floor in `getDefaultThreshold()`'s switch — it is exhaustive, so the
@@ -1561,7 +1730,7 @@ both iterate `RequestType.values()`.
 
 Edit `DEFAULT_WINDOW_SECONDS`, `DEFAULT_WARNING_THRESHOLD`,
 `DEFAULT_HIGH_THRESHOLD`, `DEFAULT_CRITICAL_THRESHOLD` or `DEFAULT_DECAY_AMOUNT`
-in `SimulationController`. The named constants exist so that Reset Defaults stays
+in `SimulationSettings`. The named constants exist so that Reset Defaults stays
 in sync automatically.
 
 ### Change the retention cap
@@ -1597,11 +1766,12 @@ The abstract base means a new window-based policy is about ten lines.
 
 ### Split the settings dialog into FXML
 
-`buildAndShowSettingsDialog()` is 348 lines of imperative JavaFX and is the
-single largest method in the project. To extract it: create
-`settings.fxml` with an `fx:controller` of your choice, move the static
-structure there, and keep only the dynamic parts (spinner ranges, initial
-values, and the three button handlers) in Java.
+`SettingsDialogView.show(...)` is 470 lines of imperative JavaFX and is
+the single largest method in the project. To extract it: create `settings.fxml`
+with an `fx:controller` of your choice, move the static structure there, and
+keep only the dynamic parts (spinner ranges, initial values, and the three
+button handlers) in Java. Keep the shadow-margin inset, or the drop
+shadow will be clipped again.
 
 ### Add a JUnit test for the policy
 
@@ -1630,7 +1800,7 @@ A minimal `pom.xml` needs `javafx-controls` and `javafx-fxml` (both pull
 
 ---
 
-## 21. Troubleshooting
+## 22. Troubleshooting
 
 **The log list says "Request history unavailable: Missing classpath resource
 `/com/simulator/files/logs.csv`"**
@@ -1678,8 +1848,9 @@ likely created before the fix; there is no merge, so delete by clearing and
 reloading, which resets telemetry but keeps the registry.
 
 **The settings dialog is taller than the main window**
-It is 500×680 while the main window is a fixed 1000×600. On a display shorter
-than ~700 px the dialog will overflow.
+Its card is 500×680, plus a 32 px shadow margin per side, so the stage is 564×744
+against a main window fixed at 1000×600. On a display shorter than ~750 px the
+dialog will overflow.
 
 **"Loading FXML document with JavaFX API of version 25 by JavaFX runtime of
 version 11"**
@@ -1692,7 +1863,7 @@ actually fail. Match it exactly to the runtime.
 
 ---
 
-## 22. Known limitations
+## 23. Known limitations
 
 **No build file.** `GateKeeper.iml` hard-codes `/usr/share/openjfx/lib`. The
 project cannot be built by anyone else, on CI, or on a machine where JavaFX lives
@@ -1708,18 +1879,20 @@ untestable without JavaFX on the classpath and unusable from a server-side
 context. Both were deliberate trade-offs for a simulator, but they are the main
 thing to revisit if this code were ever to head anywhere real.
 
-**No graceful shutdown.** `MainApp` does not override `stop()`, so neither
-`Timeline` is explicitly stopped. The JVM exiting is what ends them.
+**The main window is not resizable** and is shorter than the settings dialog
+(`500×680` of card plus a 32 px shadow margin on each side, so `564×744` overall).
 
-**The main window is not resizable** and is shorter than the settings dialog.
+**The `FileChooser` cannot be styled.** On Linux, GTK, JavaFX delegates the file
+chooser to the *native* GTK dialog, which follows the desktop's theme rather than
+JavaFX CSS — so it cannot be made dark from here. It is also the one surface that
+cannot be verified in this environment, because `showOpenDialog` returns `null`
+immediately with no window created (no `xdg-desktop-portal` present). The only
+way to get a dark file chooser is to build an in-app one out of JavaFX nodes.
 
-**Drop shadows are clipped.** Both modals size their `Scene` exactly to the card
-(`500×680` for a 500-wide card, `560×560` for a padded root), leaving no room
-for the 25 px `dropshadow` blur to render, so the shadow is cut off at the edges.
-
-**Auto-simulation hijacks the selection.** Every 800 ms tick moves the client and
-type combo boxes, so clicking them while it runs is futile. A click landing
-between ticks also routes to whichever client the tick last selected.
+**Auto-simulation moves the visible selection.** Every 800 ms tick selects the
+client and type it is about to use, so clicking them while it runs is futile. The
+request itself is issued for the tick's own choice, not for whatever the combo
+boxes hold, so a click can no longer redirect traffic.
 
 **Silent no-ops remain in three places.** `onSingleRequest` returns without
 feedback when no client or type is selected, and `startAutoSimulation` returns
@@ -1733,17 +1906,79 @@ bundled data.
 input filter, so committing a non-numeric or out-of-range value behaves
 unpredictably.
 
-**`logs.csv` is 24 MB and staged for commit.** It is required for the auto-calc
-feature to be meaningful, but it dominates the repository.
+**`logs.csv` is 24 MB and committed.** It is required for the auto-calc feature
+to be meaningful, but it dominates the repository. If it is only sample data,
+cutting it to ~50,000 rows would exercise an identical code path — it would still
+exceed `MAX_RETAINED_LOGS`, so all the trimming and indexing logic would still
+run — and take the repository to roughly 2 MB.
 
-**`SimulationController` is 1,913 lines** and mixes state, policy construction,
-file I/O, two modals built in imperative Java, and three cell renderers. It is
-the obvious next thing to split; the README's original plan described a
-`services` layer that was never built.
+**`SimulationController` used to be 2,469 lines** and mixed state, policy
+construction, file I/O, two modals built in imperative Java, and three cell
+renderers. It has since been split (see [§25](#25-the-controller-split)); what is
+left is 936 lines of wiring and flow. The README's original plan described a
+`services` layer that was never built — the split below keeps the `model`, `io`
+and `policy` packages rather than introducing a new one.
 
 ---
 
-## 23. Glossary
+## 25. The controller split
+
+`SimulationController` was 2,469 lines: 69% of the project's Java. It is now
+**936 lines**, and the code it no longer owns lives in eight files chosen so that
+each has one reason to change.
+
+| New home | Lines | What it owns | Why it is separate |
+| --- | --- | --- | --- |
+| `model/SimulationSettings` | 190 | Every setting, the defaults, and `resolveThreshold` | The rate limit is a *rule about settings*, not about a window, so it can be exercised without a toolkit. |
+| `io/ScenarioService` | 279 | Scenario document ⇄ settings + clients, and the strict field readers | A codec. Touches no observable list, so "parse then apply" is genuinely separable. |
+| `io/HistoryLoader` | 106 | The bundled CSV, row by row | Runs off the application thread, so it must not touch UI state. Keeping that a compile-time fact is the point. |
+| `policy/PolicyType` | 18 | The two policies and their display names | Was a nested enum; the settings object and the policy factory both need it. |
+| `ui/SettingsDialogView` | 470 | The settings modal | 470 lines of widget construction with no state of its own — it edits the `SimulationSettings` it is given. |
+| `ui/AbuseReportView` | 251 | The abuse report modal | Read-only, and takes the client list rather than owning it. |
+| `ui/NoticeDialog` | 118 | The one-button and confirm modals | Used by all three, and blocking, so it is a small thing with one contract: `error` / `success` / `confirmDestructive`. |
+| `ui/cells/*` (3 files) | 127 + 243 + 158 | The three row renderers | One row each, no controller state, styled entirely inline. |
+
+### What stayed in the controller, and why
+
+Only what is genuinely *about* the running application:
+
+* the `@FXML`-injected fields and every handler the FXML names;
+* the five `ObservableList`s and the daily-accepted index;
+* the request path — eviction, single request, burst;
+* the auto-simulation `Timeline` and its shutdown;
+* the policy **choice** (`new FixedWindowPolicy(...)` vs sliding) and the request
+  factory, which need the index and the random source;
+* `applyImportedScenario`, the half of an import that resets live state.
+
+`resolveThreshold` moved out but kept exactly one caller-facing meaning: the
+controller's three-line `resolveThreshold(client, type)` exists only to supply
+the busiest-day count and to guard a null client, which the index — being keyed
+by client identity — cannot accept.
+
+### Two design notes
+
+**The settings are one object, not eight fields.** `SimulationSettings` is passed
+to the dialog, which writes it on Save. The alternative — passing eight values in
+and eight out — makes it possible to save three of eight, and the
+`thresholdsAreOrdered` check the dialog performs would then be the only guard.
+
+**The dialogs take callbacks, not the controller.** `SettingsDialogView.show`
+takes four `Runnable`s. It never sees the controller, so it cannot accidentally
+reach the client list or the index, and the "what does opening settings do?"
+question is answered entirely by one call site in `showSettingsDialog()`.
+
+### How this was verified
+
+There is no test suite in the repository, so a behavioural baseline was captured
+before the split and re-run after: twelve suites covering the rate limiter,
+window eviction, the daily index, JSON, the dialogs, and scenario round trips.
+All twelve produced identical results, and all five rendered surfaces (main
+window, combo popup, settings, notice, report) came back with the same
+dimensions and the same pixel counts.
+
+---
+
+## 24. Glossary
 
 ### Domain
 
@@ -1803,6 +2038,13 @@ the obvious next thing to split; the README's original plan described a
 | **Record** | An immutable data carrier (Java 16+). Used for `HistoryRow`, `Window`, `Decision`. |
 | **Sealed / exhaustive switch** | A `switch` over an enum with no `default`; the compiler enforces completeness. |
 | **Identity equality** | `==` or `IdentityHashMap`: same object, not merely equal. |
+
+### Files
+
+| Term | Meaning |
+| --- | --- |
+| **Scenario file** | JSON holding the settings, client registry and per-client telemetry. |
+| **Half-open range** | `[start, end)` — see the glossary above; repeated here only because the import rules use it too. |
 | **Method reference** | `acceptedIndex::add` as a `Consumer`. |
 
 ---
@@ -1813,7 +2055,10 @@ Every method in the project, by file.
 
 **`Main.main(String[])`** — delegates to `MainApp.main`.
 
-**`MainApp.start(Stage)`** — loads the FXML and shows the window.
+**`MainApp.start(Stage)`** — loads the FXML, keeps a reference to the controller,
+and shows the window.
+**`MainApp.stop()`** — called when the last window closes. Delegates to
+`SimulationController.shutdown()` so neither `Timeline` is left running.
 **`MainApp.main(String[])`** — calls `Application.launch()`.
 
 **`Client`** — constructor, `getName`, `getTotalRequest`,
@@ -1839,68 +2084,69 @@ Every method in the project, by file.
 
 **`FixedWindowPolicy`** / **`SlidingWindowPolicy`** — constructor and `windowFor`.
 
-**`SimulationController`** (declaration order):
+**`SimulationController`** (declaration order, 42 methods, after the split):
 
 | Line | Member |
 | --- | --- |
-| 64 | `enum PolicyType` |
-| 119 | `record HistoryRow` |
-| 200 | `initialize()` |
-| 315 | `loadLogsFromCsv()` |
-| 327 | `readHistoryAsync()` |
-| 338 | `readHistoryRows()` |
-| 365 | `parseHistoryRow(String)` |
-| 398 | `mergeHistoryRows(List<HistoryRow>)` |
-| 438 | `onHistoryLoadFailed(Exception)` |
-| 444 | `recentOnly(List<Log>)` *(static)* |
-| 457 | `recordLiveLog(Log)` |
-| 470 | `setHistoryPlaceholder(String)` |
-| 478 | `initializeDefaultSettings()` |
-| 485 | `updatePolicyDisplay()` |
-| 492 | `updateRateLimitDisplay(Client, RequestType)` |
-| 509 | `resolveThreshold(Client, RequestType)` |
-| 524 | `autoThresholdFor(Client, RequestType)` |
-| 534 | `onSettings()` |
+| 143 | `initialize()` |
+| 256 | `loadLogsFromCsv()` |
+| 270 | `readHistoryAsync()` |
+| 279 | `mergeHistoryRows()` |
+| 319 | `onHistoryLoadFailed()` |
+| 325 | `recentOnly()` *(static)* |
+| 338 | `recordLiveLog()` |
+| 351 | `setHistoryPlaceholder()` |
+| 359 | `updatePolicyDisplay()` |
+| 366 | `updateRateLimitDisplay()` |
+| 381 | `busiestDayCount()` |
+| 385 | `resolveThreshold()` |
+| 390 | `onSettings()` |
+| 408 | `exportScenario()` |
+| 433 | `importScenario()` |
+| 475 | `exportLogCsv()` |
+| 511 | `applyImportedScenario()` |
+| 535 | `ownerStage()` |
 | 543 | `showSettingsDialog()` |
-| 557 | `showValidationError(String)` |
-| 596 | `buildAndShowSettingsDialog()` |
-| 944 | `createTopPlaceholder(String)` |
-| 961 | `onAddClient()` |
-| 983 | `findClientByName(String)` |
-| 992 | `getDefaultThreshold(RequestType)` |
-| 1001 | `getClientPolicy(Client, RequestType)` |
-| 1025 | `evictRequestsOutsideWindow(LocalDateTime)` |
-| 1031 | `onSingleRequest()` |
-| 1084 | `onBurst()` |
-| 1092 | `onAutoSimulate()` |
-| 1100 | `startAutoSimulation()` |
-| 1120 | `stopAutoSimulation()` |
-| 1132 | `runAutoSimulationStep()` |
-| 1155 | `setupTrafficChart()` |
-| 1165 | `startTrafficTimer()` |
-| 1204 | `onClear()` |
-| 1215 | `resetSimulationState()` |
-| 1238 | `onReloadHistory()` |
-| 1247 | `onGenerateAbuseReport()` |
-| 1251 | `showAbuseReportPopUp(ObservableList<Client>)` |
-| 1405 | `createKpiCard(String, String, String, String)` *(static)* |
-| 1426 | `createListView(ObservableList<Client>)` *(static)* |
-| 1448 | `class ClientReportCell` |
-| 1645 | `createFill(double)` *(static)* |
-| 1667 | `class ClientCardCell` |
-| 1778 | `class LogCell` |
+| 565 | `showValidationError()` |
+| 570 | `showSuccess()` |
+| 574 | `confirmDestructive()` |
+| 579 | `createTopPlaceholder()` |
+| 596 | `onAddClient()` |
+| 617 | `findClientByName()` |
+| 626 | `getDefaultThreshold()` |
+| 635 | `getClientPolicy()` |
+| 659 | `evictRequestsOutsideWindow()` |
+| 666 | `onSingleRequest()` |
+| 694 | `issueRequest()` |
+| 733 | `onBurst()` |
+| 756 | `onAutoSimulate()` |
+| 764 | `startAutoSimulation()` |
+| 784 | `stopAutoSimulation()` |
+| 796 | `runAutoSimulationStep()` |
+| 823 | `setupTrafficChart()` |
+| 833 | `startTrafficTimer()` |
+| 868 | `shutdown()` |
+| 891 | `onClear()` |
+| 901 | `resetSimulationState()` |
+| 924 | `onReloadHistory()` |
+| 933 | `onGenerateAbuseReport()` |
 
-Line numbers refer to `SimulationController.java` as of this document and will
-drift as the file changes; the method names will not.
+Moved out of this class, and where each went:
 
----
-
-## Appendix B: the three cell renderers in detail
-
-A `ListCell` subclass overrides `updateItem(T item, boolean empty)`. The `empty`
-flag marks filler cells; when true the graphic and text must be cleared or the
-row will show stale content. `ListView` recycles cells, so `updateItem` is
-called far more often than there are items.
+| Was | Now lives in |
+| --- | --- |
+| `enum PolicyType` | `policy/PolicyType.java` |
+| `record HistoryRow`, `readHistoryRows()`, `parseHistoryRow()` | `io/HistoryLoader.java` |
+| `buildScenario()`, `parseScenario()`, `applyScenario()`, the `require*` readers, `ImportedScenario`, `ScenarioFormatException` | `io/ScenarioService.java` |
+| the eight settings fields, `initializeDefaultSettings()`, `autoThresholdFor()`, `getDefaultThreshold()` | `model/SimulationSettings.java` |
+| `buildAndShowSettingsDialog()`, `makeDialogButton()` | `ui/SettingsDialogView.java` |
+| `showAbuseReportPopUp()`, `createKpiCard()`, `createListView()` | `ui/AbuseReportView.java` |
+| `showNotice()`, `showNoticeDialog()` | `ui/NoticeDialog.java` |
+| `ClientReportCell`, `ClientCardCell`, `LogCell` | `ui/cells/` |
+| `HISTORY_RESOURCE`, `HISTORY_READ_BUFFER`, `HISTORY_TIME_FORMAT` | `io/HistoryLoader.java` |
+| `CLOCK_FORMAT` | `ui/cells/LogCell.java` |
+| `THRESHOLD_HEADROOM`, `THRESHOLD_CEILING`, the `DEFAULT_*` constants | `model/SimulationSettings.java` |
+| `MODAL_SHADOW_MARGIN` | `ui/NoticeDialog.java` |
 
 ### `ClientCardCell` — the registry row
 

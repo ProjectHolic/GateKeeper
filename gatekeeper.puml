@@ -1,0 +1,160 @@
+@startuml GateKeeper_UML
+
+title GateKeeper - Class Diagram
+
+skinparam backgroundColor white
+skinparam classBackgroundColor #F8FAFC
+skinparam classBorderColor #334155
+skinparam classFontColor #0F172A
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+
+' ============================================================
+' UI
+' ============================================================
+
+package "UI" {
+
+    class SimulationController {
+        - clients : ObservableList<Client>
+        - requests : ObservableList<Request>
+        - logs : ObservableList<Log>
+        - policy : RatePolicy
+        - settings : SimulationSettings
+        - acceptedIndex : DailyAcceptedIndex
+        --
+        + initialize()
+        + issueRequest()
+        + onClear()
+    }
+}
+
+' ============================================================
+' POLICY
+' ============================================================
+
+package "Policy" {
+
+    interface RatePolicy {
+        + evaluate(
+            Client,
+            RequestType,
+            Requests
+        )
+    }
+
+    abstract class AbstractWindowPolicy {
+        - maxRequests
+        - window
+        - thresholds
+        - severityMultipliers
+        - decayAmount
+        --
+        + evaluate()
+        # windowFor()
+        - penalise()
+        - isCoolingDown()
+    }
+
+    class FixedWindowPolicy {
+        # windowFor()
+    }
+
+    class SlidingWindowPolicy {
+        # windowFor()
+    }
+}
+
+' ============================================================
+' MODEL
+' ============================================================
+
+package "Model" {
+
+    class Client {
+        - name
+        - totalRequest
+        - violationCount
+        - violationScore
+        - level
+        --
+        + addViolationScore()
+        + decayViolationScore()
+    }
+
+    class Request {
+        - client : Client
+        - type : RequestType
+        - time : LocalDateTime
+        --
+        + Request(...)
+    }
+
+    class Log {
+        - client : Client
+        - type : RequestType
+        - time : LocalDateTime
+        - status : String
+        --
+        + Log(Request, String)
+    }
+
+    class DailyAcceptedIndex {
+        - dailyCounts
+        - peakDailyCache
+        --
+        + add(Log)
+        + remove(Log)
+        + maxDailyAccepted()
+    }
+
+    enum RequestType {
+        READ
+        WRITE
+        LOGIN
+        PAYMENT
+    }
+
+    enum ViolationLevel {
+        NONE
+        WARNING
+        HIGH
+        CRITICAL
+    }
+
+    class SimulationSettings
+}
+
+' ============================================================
+' RELATIONSHIPS
+' ============================================================
+
+' Controller owns simulation state
+SimulationController o-- "0..*" Client : manages
+SimulationController o-- "0..*" Request : stores
+SimulationController o-- "0..*" Log : stores
+
+' Controller uses policy
+SimulationController --> RatePolicy : uses
+
+' Controller uses supporting services
+SimulationController --> DailyAcceptedIndex : indexes
+SimulationController --> SimulationSettings : uses
+
+' Policy hierarchy
+AbstractWindowPolicy ..|> RatePolicy
+FixedWindowPolicy --|> AbstractWindowPolicy
+SlidingWindowPolicy --|> AbstractWindowPolicy
+
+' Model relationships
+Request --> "1" Client : belongs to
+Request --> RequestType : type
+Log --> "1" Client : belongs to
+Log --> RequestType : type
+Client --> ViolationLevel : level
+
+' Accepted-history index
+DailyAcceptedIndex --> Log : tallies accepted
+
+@enduml
