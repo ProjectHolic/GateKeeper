@@ -5,27 +5,28 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
-import java.util.UUID;
+import java.time.LocalDateTime;
 
 public class Client {
 
     private final String name;
-    private final String id;
 
     private final IntegerProperty totalRequest =
             new SimpleIntegerProperty(0);
 
-    private final IntegerProperty violation =
+    private final IntegerProperty violationScore =
+            new SimpleIntegerProperty(0);
+
+    private final IntegerProperty violationCount =
             new SimpleIntegerProperty(0);
 
     private final ObjectProperty<ViolationLevel> level =
             new SimpleObjectProperty<>(ViolationLevel.NONE);
 
+    private LocalDateTime lastViolationTime;
+
     public Client(String name) {
         this.name = name;
-        this.id = UUID.randomUUID()
-                .toString()
-                .replace("-", "");
     }
 
     public String getName() {
@@ -46,16 +47,34 @@ public class Client {
     }
 
 
-    public int getViolation() {
-        return violation.get();
+    public int getViolationScore() {
+        return violationScore.get();
     }
 
-    public IntegerProperty violationProperty() {
-        return violation;
+    public IntegerProperty violationScoreProperty() {
+        return violationScore;
     }
 
-    public void increaseViolation() {
-        violation.set(violation.get() + 1);
+    public void addViolationScore(int score) {
+        violationScore.set(violationScore.get() + score);
+        lastViolationTime = LocalDateTime.now();
+    }
+
+    public void decayViolationScore(int decayAmount) {
+        int newScore = Math.max(0, violationScore.get() - decayAmount);
+        violationScore.set(newScore);
+    }
+
+    public int getViolationCount() {
+        return violationCount.get();
+    }
+
+    public IntegerProperty violationCountProperty() {
+        return violationCount;
+    }
+
+    public void increaseViolationCount() {
+        violationCount.set(violationCount.get() + 1);
     }
 
 
@@ -67,8 +86,34 @@ public class Client {
         return level;
     }
 
-    public void setLevel(ViolationLevel level) {
-        this.level.set(level);
+    public LocalDateTime getLastViolationTime() {
+        return lastViolationTime;
+    }
+
+    /** Returns the client to a pristine state, as if it had just been registered. */
+    public void reset() {
+        totalRequest.set(0);
+        violationScore.set(0);
+        violationCount.set(0);
+        level.set(ViolationLevel.NONE);
+        lastViolationTime = null;
+    }
+
+    /**
+     * The single place {@link #level} is derived. Nothing else may set it
+     * directly, otherwise the badge can disagree with the score beside it.
+     */
+    public void updateLevelFromScore(int warningThreshold, int highThreshold, int criticalThreshold) {
+        int score = violationScore.get();
+        if (score >= criticalThreshold) {
+            this.level.set(ViolationLevel.CRITICAL);
+        } else if (score >= highThreshold) {
+            this.level.set(ViolationLevel.HIGH);
+        } else if (score >= warningThreshold) {
+            this.level.set(ViolationLevel.WARNING);
+        } else {
+            this.level.set(ViolationLevel.NONE);
+        }
     }
 
   @Override

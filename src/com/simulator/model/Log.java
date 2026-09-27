@@ -3,6 +3,10 @@ package com.simulator.model;
 import java.time.LocalDateTime;
 
 public class Log {
+
+    public static final String STATUS_ACCEPTED = "ACCEPTED";
+    public static final String STATUS_BLOCKED = "BLOCKED";
+
     private final Client client;
     private final RequestType type;
     private final LocalDateTime time;

@@ -11,6 +11,12 @@ public class Request {
         this.time = LocalDateTime.now();
         this.type = type;
     }
+
+    public Request(Client client, RequestType type, LocalDateTime time) {
+        this.client = client;
+        this.time = time;
+        this.type = type;
+    }
     public Client getClient(){
         return this.client;
     }

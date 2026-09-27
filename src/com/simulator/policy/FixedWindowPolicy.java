@@ -1,65 +1,40 @@
 package com.simulator.policy;
-import com.simulator.model.Client;
-import com.simulator.model.Request;
-import com.simulator.model.ViolationLevel;
-import javafx.collections.ObservableList;
+import com.simulator.model.RequestType;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.time.ZoneOffset;
+import java.util.Map;
 
-public class FixedWindowPolicy implements RatePolicy {
+/**
+ * Counts requests inside a fixed grid of consecutive windows.
+ *
+ * <p>Windows are aligned to whole multiples of the window length counted from
+ * the Unix epoch, so every client sees the same boundaries and the boundaries
+ * do not drift as requests arrive. A burst that straddles a boundary is split
+ * across two windows; that is the inherent trade-off of a fixed window and the
+ * reason {@link SlidingWindowPolicy} exists.
+ */
+public class FixedWindowPolicy extends AbstractWindowPolicy {
 
-    private final int maxRequests;
-    private final Duration window;
-
-    public FixedWindowPolicy(int maxRequests, Duration window) {
-        this.maxRequests = maxRequests;
-        this.window = window;
+    public FixedWindowPolicy(int maxRequests, Duration window,
+                             Map<RequestType, Integer> severityMultipliers,
+                             int[] violationThresholds,
+                             int decayAmount) {
+        super(maxRequests, window, severityMultipliers, violationThresholds, decayAmount);
     }
 
     @Override
-    public ViolationLevel evaluate(
-            Client client,
-            ObservableList<Request> requests) {
+    protected Window windowFor(LocalDateTime latest) {
+        long windowSeconds = Math.max(1, getWindow().getSeconds());
 
-        if(client.getViolation() >= 50) return ViolationLevel.CRITICAL;
+        // Request timestamps are naive local date-times and are treated as UTC
+        // here purely to get a stable grid. The absolute offset is irrelevant;
+        // what matters is that the same instant always lands in the same window.
+        long epochSecond = latest.toEpochSecond(ZoneOffset.UTC);
+        long windowStart = Math.floorDiv(epochSecond, windowSeconds) * windowSeconds;
 
-        List<Request> clientRequests = requests.stream()
-                .filter(request ->
-                        request.getClient().equals(client))
-                .sorted((a, b) ->
-                        a.getTime().compareTo(b.getTime()))
-                .toList();
-
-        if (clientRequests.isEmpty()) {
-            return ViolationLevel.NONE;
-        }
-
-        LocalDateTime latest =  clientRequests.get(clientRequests.size() - 1).getTime();
-
-        LocalDateTime windowStart = latest.minusSeconds(latest.getSecond()%window.getSeconds()).withNano(0);
-
-        LocalDateTime windowEnd =
-                windowStart.plus(window);
-
-        long count = clientRequests.stream()
-                .filter(request ->
-                        !request.getTime().isBefore(windowStart)
-                                && request.getTime().isBefore(windowEnd))
-                .count();
-
-
-        if (count > maxRequests * 3L) {
-            client.increaseViolation();
-            return ViolationLevel.CRITICAL;
-        }
-
-        if (count > maxRequests) {
-            client.increaseViolation();
-            return ViolationLevel.HIGH;
-        }
-
-        return ViolationLevel.NONE;
+        LocalDateTime start = LocalDateTime.ofEpochSecond(windowStart, 0, ZoneOffset.UTC);
+        return new Window(start, start.plusSeconds(windowSeconds));
     }
 }
