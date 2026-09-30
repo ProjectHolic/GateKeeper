@@ -1,6 +1,7 @@
 package com.simulator.ui;
 
 import com.simulator.model.RequestType;
+import com.simulator.model.SimulationMode;
 import com.simulator.model.SimulationSettings;
 import com.simulator.policy.PolicyType;
 import javafx.collections.FXCollections;
@@ -27,7 +28,6 @@ import javafx.stage.StageStyle;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * The settings modal.
@@ -166,26 +166,30 @@ public final class SettingsDialogView {
             return spinner;
         };
 
-        // Helper to create styled combo box
-        Supplier<ComboBox<PolicyType>> createPolicyCombo = () -> {
-            ComboBox<PolicyType> combo = new ComboBox<>(FXCollections.observableArrayList(PolicyType.values()));
-            combo.setValue(settings.getPolicy());
-            combo.setPrefWidth(280);
-            combo.setStyle(
-                    "-fx-background-color: #1e293b;" +
-                    "-fx-text-fill: white;" +
-                    "-fx-border-color: #334155;" +
-                    "-fx-background-radius: 6;" +
-                    "-fx-border-radius: 6;"
-            );
-            return combo;
-        };
-
         // --- Policy Selection ---
         Label policyLabel = new Label("Rate Limit Policy");
         VBox policySection = createSection.apply(policyLabel);
-        ComboBox<PolicyType> policyCombo = createPolicyCombo.get();
+        ComboBox<PolicyType> policyCombo =
+                createComboBox(PolicyType.values(), settings.getPolicy());
         policySection.getChildren().add(policyCombo);
+
+        // --- Simulation Mode ---
+        // Placed next to the policy because it answers the same question: what
+        // shape of traffic is the limiter being shown?
+        Label modeLabel = new Label("Simulation Mode");
+        VBox modeSection = createSection.apply(modeLabel);
+
+        ComboBox<SimulationMode> modeCombo =
+                createComboBox(SimulationMode.values(), settings.getSimulationMode());
+
+        Label modeNote = new Label(
+                "Single Client serves one client per tick, round-robin. "
+                        + "Multiple Clients put every registered client on the wire "
+                        + "in the same tick.");
+        modeNote.setWrapText(true);
+        modeNote.setFont(Font.font("System", 9));
+        modeNote.setTextFill(Color.web("#64748b"));
+        modeSection.getChildren().addAll(modeCombo, modeNote);
 
         // --- Window Size ---
         Label windowLabel = new Label("Window Size (seconds)");
@@ -337,6 +341,7 @@ public final class SettingsDialogView {
         // user never saved.
         resetButton.setOnAction(e -> {
             policyCombo.setValue(SimulationSettings.DEFAULT_POLICY);
+            modeCombo.setValue(SimulationSettings.DEFAULT_SIMULATION_MODE);
             windowSpinner.getValueFactory().setValue(SimulationSettings.DEFAULT_WINDOW_SECONDS);
             warningSpinner.getValueFactory().setValue(SimulationSettings.DEFAULT_WARNING_THRESHOLD);
             highSpinner.getValueFactory().setValue(SimulationSettings.DEFAULT_HIGH_THRESHOLD);
@@ -386,6 +391,7 @@ public final class SettingsDialogView {
             }
 
             settings.setPolicy(policyCombo.getValue());
+            settings.setSimulationMode(modeCombo.getValue());
             settings.setWindowSeconds(windowSpinner.getValue());
             settings.setWarningThreshold(warning);
             settings.setHighThreshold(high);
@@ -404,6 +410,7 @@ public final class SettingsDialogView {
         // Add all sections to content
         content.getChildren().addAll(
                 policySection,
+                modeSection,
                 windowSection,
                 thresholdsSection,
                 severitySection,
@@ -451,6 +458,24 @@ public final class SettingsDialogView {
         dialog.setScene(scene);
         dialog.showAndWait();
         return dialog;
+    }
+
+    /**
+     * One consistently styled choice box, seeded with the live setting so the
+     * draft starts from what is in effect.
+     */
+    private static <T> ComboBox<T> createComboBox(T[] choices, T selected) {
+        ComboBox<T> combo = new ComboBox<>(FXCollections.observableArrayList(choices));
+        combo.setValue(selected);
+        combo.setPrefWidth(280);
+        combo.setStyle(
+                "-fx-background-color: #1e293b;" +
+                        "-fx-text-fill: white;" +
+                        "-fx-border-color: #334155;" +
+                        "-fx-background-radius: 6;" +
+                        "-fx-border-radius: 6;"
+        );
+        return combo;
     }
 
     /** One consistently styled button for the settings dialog. */

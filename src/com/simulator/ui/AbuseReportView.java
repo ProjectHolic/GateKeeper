@@ -42,7 +42,7 @@ public final class AbuseReportView {
     public static void show(ObservableList<Client> clients) {
         Stage popup = new Stage();
         popup.initModality(Modality.APPLICATION_MODAL);
-        popup.initStyle(StageStyle.UNDECORATED);
+        popup.initStyle(StageStyle.TRANSPARENT);
         popup.setTitle("Abuse Report");
 
         final double[] dragOffset = new double[]{0, 0};

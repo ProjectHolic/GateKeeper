@@ -59,8 +59,8 @@ public final class NoticeDialog {
     private static boolean show(String message, String accent, String textColour,
                                 String actionText, boolean confirmMode) {
         Stage notice = new Stage();
-        notice.initModality(Modality.WINDOW_MODAL);
-        notice.initStyle(StageStyle.UNDECORATED);
+        notice.initModality(Modality.APPLICATION_MODAL);
+        notice.initStyle(StageStyle.TRANSPARENT);
 
         Label text = new Label(message);
         text.setWrapText(true);
@@ -107,6 +107,13 @@ public final class NoticeDialog {
                 WIDTH + SHADOW_MARGIN * 2,
                 height + SHADOW_MARGIN * 2
         );
+
+        // A Scene's fill defaults to opaque WHITE. The wrapper is transparent
+        // and the card is inset by SHADOW_MARGIN, so without this the whole
+        // margin paints white and the dialog appears with a white frame
+        // around it. Must match the other two modals.
+        scene.setFill(Color.TRANSPARENT);
+
         var cssUrl = NoticeDialog.class.getResource("style.css");
         if (cssUrl != null) {
             scene.getStylesheets().add(cssUrl.toExternalForm());

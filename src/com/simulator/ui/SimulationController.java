@@ -8,6 +8,7 @@ import com.simulator.model.DailyAcceptedIndex;
 import com.simulator.model.Log;
 import com.simulator.model.Request;
 import com.simulator.model.RequestType;
+import com.simulator.model.SimulationMode;
 import com.simulator.model.SimulationSettings;
 import com.simulator.policy.FixedWindowPolicy;
 import com.simulator.policy.PolicyType;
@@ -42,6 +43,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -55,13 +57,16 @@ public class SimulationController {
     /**
      * How many log entries stay resident.
      *
-     * <p>The bundled history is half a million rows, which is around 80 MB of
+     * The bundled history is half a million rows, which is around 80 MB of
      * {@link Log} objects for a list the dashboard only ever scrolls through
      * near the top of. Trimming the tail costs nothing functionally: the daily
      * tallies that actually drive the rate limits are held in
      * {@link #acceptedIndex}, which is cumulative and ignores trimming.
      */
     private static final int MAX_RETAINED_LOGS = 50_000;
+
+    /** How many requests one Burst click issues for the selected client. */
+    private static final int BURST_SIZE = 20;
 
     @FXML private TextField ClientBox;
     @FXML private Label totalRequestLabel;
@@ -335,7 +340,32 @@ public class SimulationController {
      * client's busiest day.
      */
     private void recordLiveLog(Log log) {
-        logs.addFirst(log);
+        recordLiveLogs(List.of(log));
+    }
+
+    /**
+     * The batched form of {@link #recordLiveLog(Log)}.
+     *
+     * <p>Publishing a tick as one change matters in multiple client mode, where
+     * a single tick produces one entry per registered client. Appending them one
+     * at a time would fire a list change, a trim and a chart cell refresh per
+     * client, and the trim in particular would fire on nearly every append once
+     * the history is at capacity.
+     *
+     * @param batch entries in the order they happened, oldest first
+     */
+    private void recordLiveLogs(List<Log> batch) {
+        if (batch.isEmpty()) {
+            return;
+        }
+
+        // The list is newest first, so the newest entry of the batch has to land
+        // at the head. Reversing here keeps the order that appending one at a
+        // time would have produced.
+        List<Log> newestFirst = new ArrayList<>(batch);
+        Collections.reverse(newestFirst);
+        logs.addAll(0, newestFirst);
+
         if (logs.size() > MAX_RETAINED_LOGS) {
             suppressIndexSync = true;
             try {
@@ -492,7 +522,7 @@ public class SimulationController {
         } catch (RuntimeException e) {
             showValidationError("Could not snapshot the log: " + e.getMessage());
             return;
-        }
+        }recordLiveLog
 
         try {
             ScenarioIO.writeLogCsv(target, snapshot);
@@ -608,7 +638,6 @@ public class SimulationController {
             ClientBox.clear();
             return;
         }
-
         clients.add(new Client(name));
         ClientBox.clear();
     }
@@ -677,7 +706,7 @@ public class SimulationController {
 
         if (type == null) return;
 
-        issueRequest(client, type);
+        recordLiveLog(issueRequest(client, type));
     }
 
     /**
@@ -688,8 +717,12 @@ public class SimulationController {
      * this; had it gone through {@link #onSingleRequest()}, a user click landing
      * between those two steps would have silently redirected the request to
      * whichever client was selected at that instant.
+     *
+     * @return the log entry for this request. The caller publishes it, so that
+     *         a tick which fires for several clients can add them all in one
+     *         list change rather than one each.
      */
-    private void issueRequest(Client client, RequestType type) {
+    private Log issueRequest(Client client, RequestType type) {
 
         evictRequestsOutsideWindow(LocalDateTime.now());
 
@@ -707,24 +740,19 @@ public class SimulationController {
             client.increaseTotalRequest();
             validRequestsThisSecond++;
 
-            recordLiveLog(
-                    new Log(
-                            request,
-                            Log.STATUS_ACCEPTED
-                    )
+            return new Log(
+                    request,
+                    Log.STATUS_ACCEPTED
             );
 
-        } else {
-
-            recordLiveLog(
-                    new Log(
-                            request,
-                            Log.STATUS_BLOCKED
-                    )
-            );
-
-            requests.remove(request);
         }
+
+        requests.remove(request);
+
+        return new Log(
+                request,
+                Log.STATUS_BLOCKED
+        );
     }
 
     @FXML
@@ -746,9 +774,14 @@ public class SimulationController {
 
         // The selection is read once, so all twenty requests belong to the same
         // client and type rather than whatever the combo boxes happened to hold.
-        for (int i = 0; i < 20; i++) {
-            issueRequest(client, type);
+        // Their outcomes are published as one batch: each of the twenty
+        // evaluations re-checks the retention limit, so appending one at a time
+        // would re-trim twenty times to do the same work.
+        List<Log> burst = new ArrayList<>(BURST_SIZE);
+        for (int i = 0; i < BURST_SIZE; i++) {
+            burst.add(issueRequest(client, type));
         }
+        recordLiveLogs(burst);
     }
 
     @FXML
@@ -772,7 +805,7 @@ public class SimulationController {
 
         autoSimTimeline = new Timeline(
                 new KeyFrame(
-                        javafx.util.Duration.millis(800),
+                        javafx.util.Duration.millis(new Random().nextInt(800 - 50 + 1) + 50),
                         event -> runAutoSimulationStep()
                 )
         );
@@ -798,24 +831,97 @@ public class SimulationController {
             return;
         }
 
+        if (settings.getSimulationMode() == SimulationMode.MULTI_CLIENT) {
+
+            runMultiClientStep();
+
+        } else {
+            runSingleClientStep();
+        }
+    }
+
+    /**
+     * One request, from one client: the next client in the registry is served
+     * each tick, so the load walks through the roster rather than hammering
+     * whoever happens to be selected.
+     */
+    private void runSingleClientStep() {
         Client client = clients.get(autoSimClientIndex % clients.size());
         autoSimClientIndex++;
 
-        RequestType[] requestTypes = RequestType.values();
-        RequestType randomType = requestTypes[random.nextInt(requestTypes.length)];
+        RequestType randomType = randomRequestType();
 
         // Presentation only: move the visible selection so the user can follow
         // along. The request itself is issued for the client and type decided
         // above, never for whatever the combo boxes hold by then.
-        clientChoiceBox.getSelectionModel().select(client);
-        ClientList.getSelectionModel().select(client);
-        ClientList.scrollTo(client);
-        typeChoiceBox.getSelectionModel().select(randomType);
+        followSelection(client, randomType);
 
         // No CRITICAL short-circuit here: a locked out client has to keep
         // asking, otherwise the policy never gets the chance to lift the
         // lockout once its cooldown expires.
-        issueRequest(client, randomType);
+        for(int i = 0; i < new Random().nextInt(301); i++) {
+            recordLiveLog(issueRequest(client, randomType));
+        }
+    }
+
+    /**
+     * One request from every registered client, all in the same tick.
+     *
+     * <p>Each client picks its own request type, so a tick is a genuine
+     * cross-section of the roster rather than N copies of one request. The
+     * requests are issued one after another through the same limiter, which is
+     * the only correct way to count them: a fixed window is defined by the order
+     * requests arrive, so evaluating the batch as a set would let a client slip
+     * in under a limit that its own sequential requests would have breached.
+     */
+    private void runMultiClientStep() {
+        // The client list is observable and a user can add or import a client
+        // from a listener, so the batch is taken from a snapshot rather than
+        // iterated directly.
+        List<Client> roster = new ArrayList<>(clients);
+
+        List<Log> tick = new ArrayList<>(roster.size());
+        Client firstClient = null;
+        RequestType firstType = null;
+
+        for (Client client : roster) {
+            RequestType type = randomRequestType();
+            if (firstClient == null) {
+                firstClient = client;
+                firstType = type;
+            }
+            for(int i = 0; i < new Random().nextInt(31); i++) {
+                tick.add(issueRequest(client, type));
+            }
+        }
+
+        // The combo boxes can only show one client, so they follow the first
+        // request of the tick. Scrolling per client would fight itself twenty
+        // times over, and the client list is the wrong place to watch several
+        // clients move at once anyway.
+        followSelection(firstClient, firstType);
+
+        recordLiveLogs(tick);
+    }
+
+    private RequestType randomRequestType() {
+        RequestType[] requestTypes = RequestType.values();
+        return requestTypes[random.nextInt(requestTypes.length)];
+    }
+
+    /**
+     * Moves the visible selection so the user can follow the simulation. A null
+     * argument leaves that part of the selection alone.
+     */
+    private void followSelection(Client client, RequestType type) {
+        if (client != null) {
+            clientChoiceBox.getSelectionModel().select(client);
+            ClientList.getSelectionModel().select(client);
+            ClientList.scrollTo(client);
+        }
+        if (type != null) {
+            typeChoiceBox.getSelectionModel().select(type);
+        }
     }
 
     private void setupTrafficChart() {

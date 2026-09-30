@@ -180,6 +180,7 @@ GateKeeper/
 │   │   │   ├── RequestType.java                  8 lines
 │   │   │   ├── SimulationSettings.java          The settings value object; owns
 │   │   │   │                                    resolveThreshold and the defaults
+│   │   │   ├── SimulationMode.java              Single vs. multi client auto simulation
 │   │   │   └── ViolationLevel.java               8 lines
 │   │   ├── io/                     Reading and writing files, no JavaFX
 │   │   │   ├── HistoryLoader.java              Bundled request history, row by row
@@ -746,6 +747,7 @@ These are not fields on the controller any more. The controller holds one
 | Property | Default | Meaning |
 | --- | --- | --- |
 | `policy` | `FIXED_WINDOW` | Which policy class to build. |
+| `simulationMode` | `SINGLE_CLIENT` | How many clients the auto simulation puts on the wire per tick. |
 | `windowSeconds` | 10 | Window length. |
 | `customThresholds` | all 0 | Per type; 0 means "derive from history". |
 | `severityMultipliers` | READ 1, WRITE 2, LOGIN 3, PAYMENT 2 | Penalty weights. |
@@ -1006,6 +1008,7 @@ function index is [Appendix A](#appendix-a-complete-function-index).
 | `THRESHOLD_CEILING` | `200` | Upper bound on a history-derived limit. |
 | `MAX_RETAINED_LOGS` | `50000` | Cap on resident log entries. |
 | `DEFAULT_POLICY` | `FIXED_WINDOW` | Used by Reset Defaults. |
+| `DEFAULT_SIMULATION_MODE` | `SINGLE_CLIENT` | " |
 | `DEFAULT_WINDOW_SECONDS` | `10` | " |
 | `DEFAULT_WARNING_THRESHOLD` | `20` | " |
 | `DEFAULT_HIGH_THRESHOLD` | `50` | " |
@@ -1083,12 +1086,36 @@ offset, and mouse-drag sets the stage's screen position accordingly.
   error modal and applies nothing. Otherwise it copies every control value into
   the controller's settings, refreshes the display, and closes.
 
+#### A `Scene` fills white unless you stop it
+
+The three modals each build their card at its natural size and inset it
+inside a larger scene by `NoticeDialog.SHADOW_MARGIN`, so the drop shadow has
+room to render instead of being clipped. The card sits in a transparent
+wrapper, and the margin around it is painted by **nothing in the node tree** ---
+which means `new Scene(...)` fills it, and a `Scene`'s default fill is **opaque
+white**.
+
+All three modals must therefore end with `scene.setFill(Color.TRANSPARENT)`.
+The settings and abuse-report modals do; `NoticeDialog` did not, and every
+validation error, success message and import confirmation was displayed inside
+a **32 px white frame** --- 37% of the notice's pixels.
+
+Nothing enforces this. There is no compile-time link between a modal and its
+scene fill, and a measurement that snapshots `scene.getRoot()` cannot see it,
+because the scene's fill is not part of the root's render graph. It has to be
+stated once and then checked.
+
+The main window is the exception that proves the rule: `MainApp` never sets a
+transparent fill and does not need to, because its FXML root is a `StackPane`
+that the `Scene` sizes to fill itself with an opaque dark background. A white
+fill behind an opaque root is never seen.
+
 #### The abuse report, block by block
 
 `AbuseReportView.show(...)` is 251 lines. Structure:
 
 ```
-Stage (UNDECORATED, APPLICATION_MODAL)          624 x 624  (560x560 content + margin)
+Stage (TRANSPARENT, APPLICATION_MODAL)         624 x 624  (560x560 content + margin)
 └── VBox root (padding 18/22, spacing 14, border, drop shadow)
     ├── HBox headerBar   draggable
     │     ├── StackPane iconBadge   an SVGPath shield, tinted #38bdf8
@@ -1340,6 +1367,7 @@ the only part of the app that writes to disk.
   "exportedAt": "2026-09-27T22:25:14",
   "settings": {
     "policy": "FIXED_WINDOW",
+    "simulationMode": "SINGLE_CLIENT",
     "windowSeconds": 10,
     "warningThreshold": 20,
     "highThreshold": 50,
@@ -1383,6 +1411,11 @@ known request-type names; and a client list that is non-empty, contains only
 objects, has non-blank names, and has no duplicates (case-insensitively, matching
 the registry rule). Telemetry fields are optional, so a hand-written file can
 list names alone.
+
+`simulationMode` is the one settings field that is also optional on read: it was
+added after the format shipped, so a file written before it pre-dates it and is
+given the default rather than being rejected whole. A file that *does* mention
+it still has to name a real constant.
 
 `policy` must be `FIXED_WINDOW` or `SLIDING_WINDOW`. Rejections are reported
 verbatim, e.g. `"windowSeconds" is 100000; expected between 1 and 3600.`
@@ -1490,13 +1523,19 @@ surrounding bookkeeping in `onSingleRequest()`:
 
 1. Read the selected client; return if none.
 2. Read the selected type; return if none.
-3. `evictRequestsOutsideWindow(now)` — drop requests older than `now - window`.
-4. Build a `Request` stamped `now`, add it to `requests`.
-5. Build a policy and evaluate.
-6. If allowed: bump the client's total, bump the per-second counter, record an
-   `ACCEPTED` log.
-7. If blocked: record a `BLOCKED` log and **remove the request again**, so a
-   refused attempt leaves no trace in the window.
+3. `issueRequest(client, type)`, which:
+   1. `evictRequestsOutsideWindow(now)` — drop requests older than `now - window`.
+   2. Builds a `Request` stamped `now` and adds it to `requests`.
+   3. Builds a policy and evaluates.
+   4. If allowed: bumps the client's total, bumps the per-second counter, and
+      **returns** an `ACCEPTED` log.
+   5. If blocked: **removes the request again** — a refused attempt leaves no
+      trace in the window — and returns a `BLOCKED` log.
+4. `recordLiveLog(...)` publishes the returned entry.
+
+`issueRequest()` returns its log rather than recording it, so that a caller
+firing for several clients can publish them all in one list change; see
+`recordLiveLogs()`.
 
 ### A burst
 
@@ -1506,10 +1545,33 @@ the remainder are blocked — the intended demonstration.
 
 ### Auto simulation
 
-An 800 ms `Timeline`. Each tick round-robins a client by index, picks a random
-type, **moves the on-screen selection to match**, and issues one request. It runs
-until the button is pressed again, the registry becomes empty, or the settings
-dialog opens (which pauses it and restores it afterwards).
+An 800 ms `Timeline`, running until the button is pressed again, the registry
+becomes empty, or the settings dialog opens (which pauses it and restores it
+afterwards). Each tick reads `settings.simulationMode` and dispatches to one of
+two steps; which one is in force is decided per tick, so changing the setting
+takes effect the next time the simulation runs without restarting it.
+
+**`SINGLE_CLIENT`** (the default) round-robins a client by index, picks a random
+type, **moves the on-screen selection to match**, and issues one request. The
+registry is walked rather than hammered, so each client is quiet for as many
+ticks as there are clients.
+
+**`MULTI_CLIENT`** puts *every* registered client on the wire in the same tick,
+each picking its own request type, so a tick is a cross-section of the roster
+rather than N copies of one request. The requests are still issued one after
+another through the same limiter, and that is deliberate: a window is defined by
+the order requests arrive, so evaluating the batch as a set would let a client
+slip in under a limit its own sequential requests would have breached. One
+client is enough to be a crowd, though, and a large registry multiplies traffic
+per tick accordingly.
+
+The combo boxes can only show one client, so in `MULTI_CLIENT` they follow the
+first request of the tick. Scrolling the client list once per client would fight
+itself twenty times over.
+
+Both steps publish their outcomes in one `recordLiveLogs(...)` batch rather than
+appending entry by entry: a `MULTI_CLIENT` tick produces one entry per client,
+and the retention trim re-runs on every append once the history is at capacity.
 
 There is deliberately no `CRITICAL` short-circuit in the tick: a locked-out
 client must keep asking so the policy can lift the lockout once the cooldown

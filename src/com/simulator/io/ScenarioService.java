@@ -2,6 +2,7 @@ package com.simulator.io;
 
 import com.simulator.model.Client;
 import com.simulator.model.RequestType;
+import com.simulator.model.SimulationMode;
 import com.simulator.model.SimulationSettings;
 import com.simulator.policy.PolicyType;
 
@@ -45,6 +46,7 @@ public final class ScenarioService {
 
     /** Everything a scenario file claims, already validated. */
     public record ImportedScenario(PolicyType policy,
+                                    SimulationMode simulationMode,
                                     int windowSeconds,
                                     int warningThreshold,
                                     int highThreshold,
@@ -73,6 +75,7 @@ public final class ScenarioService {
 
         Map<String, Object> settingsBlock = ScenarioIO.orderedMap();
         settingsBlock.put("policy", settings.getPolicy().name());
+        settingsBlock.put("simulationMode", settings.getSimulationMode().name());
         settingsBlock.put("windowSeconds", settings.getWindowSeconds());
         settingsBlock.put("warningThreshold", settings.getWarningThreshold());
         settingsBlock.put("highThreshold", settings.getHighThreshold());
@@ -106,13 +109,14 @@ public final class ScenarioService {
         Map<String, Object> block = requireObject(document, "settings");
 
         String policyName = requireString(block, "policy");
-        PolicyType policy;
-        try {
-            policy = PolicyType.valueOf(policyName);
-        } catch (IllegalArgumentException e) {
-            throw new ScenarioFormatException(
-                    "\"policy\" is \"" + policyName + "\"; expected FIXED_WINDOW or SLIDING_WINDOW.");
-        }
+        PolicyType policy = parseEnum(policyName, PolicyType.values(), "policy");
+
+        // Optional: files written before the mode existed predate it, and
+        // defaulting keeps them loadable instead of failing the whole import
+        // over a field that has an obvious right answer.
+        SimulationMode simulationMode =
+                requireOptionalEnum(block, "simulationMode", SimulationMode.values(),
+                        SimulationSettings.DEFAULT_SIMULATION_MODE);
 
         int window = requireInt(block, "windowSeconds", 1, 3600);
         int warning = requireInt(block, "warningThreshold", 1, 1000);
@@ -160,7 +164,7 @@ public final class ScenarioService {
             imported.add(client);
         }
 
-        return new ImportedScenario(policy, window, warning, high, critical, decay,
+        return new ImportedScenario(policy, simulationMode, window, warning, high, critical, decay,
                 severity, custom, imported);
     }
 
@@ -174,6 +178,7 @@ public final class ScenarioService {
      */
     public static void applySettings(ImportedScenario scenario, SimulationSettings settings) {
         settings.setPolicy(scenario.policy());
+        settings.setSimulationMode(scenario.simulationMode());
         settings.setWindowSeconds(scenario.windowSeconds());
         settings.setWarningThreshold(scenario.warningThreshold());
         settings.setHighThreshold(scenario.highThreshold());
@@ -207,6 +212,35 @@ public final class ScenarioService {
             throw new ScenarioFormatException("\"" + key + "\" must be a non-empty string.");
         }
         return s;
+    }
+
+    /**
+     * Maps a stored name back to its constant, reporting the accepted spellings
+     * the way the field is actually written in the file.
+     */
+    private static <E extends Enum<E>> E parseEnum(String value, E[] choices, String key) {
+        for (E choice : choices) {
+            if (choice.name().equals(value)) {
+                return choice;
+            }
+        }
+        throw new ScenarioFormatException("\"" + key + "\" is \"" + value + "\"; expected "
+                + String.join(" or ", Arrays.stream(choices).map(Enum::name).toList()) + ".");
+    }
+
+    /**
+     * An enum field that a file may legitimately leave out, because a default
+     * was added after some files were already written. A file that does mention
+     * it still has to get it right.
+     */
+    private static <E extends Enum<E>> E requireOptionalEnum(Map<String, Object> parent,
+                                                             String key,
+                                                             E[] choices,
+                                                             E fallback) {
+        if (parent.get(key) == null) {
+            return fallback;
+        }
+        return parseEnum(requireString(parent, key), choices, key);
     }
 
     private static int requireInt(Map<String, Object> parent, String key, int min, int max) {

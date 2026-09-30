@@ -23,6 +23,7 @@ public final class SimulationSettings {
     public static final int THRESHOLD_CEILING = 200;
 
     public static final PolicyType DEFAULT_POLICY = PolicyType.FIXED_WINDOW;
+    public static final SimulationMode DEFAULT_SIMULATION_MODE = SimulationMode.SINGLE_CLIENT;
     public static final int DEFAULT_WINDOW_SECONDS = 10;
     public static final int DEFAULT_WARNING_THRESHOLD = 20;
     public static final int DEFAULT_HIGH_THRESHOLD = 50;
@@ -44,6 +45,7 @@ public final class SimulationSettings {
     }
 
     private PolicyType policy = DEFAULT_POLICY;
+    private SimulationMode simulationMode = DEFAULT_SIMULATION_MODE;
     private int windowSeconds = DEFAULT_WINDOW_SECONDS;
     private int warningThreshold = DEFAULT_WARNING_THRESHOLD;
     private int highThreshold = DEFAULT_HIGH_THRESHOLD;
@@ -59,6 +61,7 @@ public final class SimulationSettings {
 
     public void resetToDefaults() {
         policy = DEFAULT_POLICY;
+        simulationMode = DEFAULT_SIMULATION_MODE;
         windowSeconds = DEFAULT_WINDOW_SECONDS;
         warningThreshold = DEFAULT_WARNING_THRESHOLD;
         highThreshold = DEFAULT_HIGH_THRESHOLD;
@@ -79,6 +82,14 @@ public final class SimulationSettings {
 
     public void setPolicy(PolicyType policy) {
         this.policy = policy;
+    }
+
+    public SimulationMode getSimulationMode() {
+        return simulationMode;
+    }
+
+    public void setSimulationMode(SimulationMode simulationMode) {
+        this.simulationMode = simulationMode;
     }
 
     public int getWindowSeconds() {
